@@ -322,6 +322,80 @@
       h2 { font-size: 1.3rem; }
       body { font-size: 15px; }
     }
+
+    /* ── Concept badges ── */
+    .concept-badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .concept-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.65rem;
+      background: #f3f0ff;
+      border: 1px solid #c4b5fd;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #5b21b6;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+
+    .concept-badge::before {
+      content: "●";
+      font-size: 0.6rem;
+    }
+
+    .concept-badge:hover {
+      background: #ede9fe;
+      border-color: #7c3aed;
+    }
+
+    /* Tooltip */
+    .concept-badge .badge-tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e2030;
+      color: #e0e0f0;
+      font-size: 0.78rem;
+      font-weight: 400;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      max-width: 260px;
+      white-space: normal;
+      text-align: center;
+      z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      pointer-events: none;
+      line-height: 1.4;
+    }
+
+    /* Tooltip arrow */
+    .concept-badge .badge-tooltip::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #1e2030;
+    }
+
+    .concept-badge:hover .badge-tooltip,
+    .concept-badge:focus .badge-tooltip {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -337,7 +411,7 @@
   <span class="part-label">Part 1</span>
   <h2>Theoretical Foundations</h2>
 
-  <h3>1. Primitive Obsession</h3>
+  <h3 id="theory-primitive-obsession">1. Primitive Obsession</h3>
 
   <blockquote>
     "Primitive Obsession is the use of primitive data types to represent domain concepts."
@@ -346,7 +420,7 @@
 
   <p>The code smell describes the habit of using <code>string</code>, <code>int</code>, <code>float</code> everywhere instead of creating small domain-specific types. An age, an income, a child count, and a postal code are all integers, but they are not the same thing. Treating them as raw integers forces every consumer to remember and re-implement the rules that distinguish them.</p>
 
-  <h3>2. Make Implicit Concepts Explicit</h3>
+  <h3 id="theory-make-implicit-explicit">2. Make Implicit Concepts Explicit</h3>
 
   <blockquote>
     "Many transformations of domain models and the corresponding code happen when developers recognize a concept that has been hinted at in discussion or present implicitly in the design, and they then represent it explicitly in the model with one or more objects or relationships."
@@ -359,7 +433,7 @@
 
   <p>Ben Moseley and Peter Marks (2006) identify three causes of complexity in software systems.</p>
 
-  <h3>3.1 Complexity Caused by State</h3>
+  <h3 id="theory-state">3.1 Complexity Caused by State</h3>
 
   <blockquote>
     "The single biggest remaining cause of complexity in most contemporary large systems is state, and the more we can do to limit and manage state, the better."
@@ -368,7 +442,7 @@
 
   <p>Mutable state makes systems unpredictable: a test on a system in one state tells you nothing about its behaviour in a different state. Every added bit of state doubles the number of possible states the system can be in.</p>
 
-  <h3>3.2 Complexity Caused by Control</h3>
+  <h3 id="theory-control">3.2 Complexity Caused by Control</h3>
 
   <blockquote>
     "Control is basically about the order in which things happen. When a programmer is forced to specify the control, he or she is being forced to specify an aspect of how the system should work rather than simply what is desired. Effectively they are being forced to over-specify the problem."
@@ -377,7 +451,7 @@
 
   <p>Imperative code forces you to state execution order even when you only care about the relationship between values. Every conditional guard, every nested validation block, is accidental control flow.</p>
 
-  <h3>3.3 Complexity Caused by Code Volume</h3>
+  <h3 id="theory-volume">3.3 Complexity Caused by Code Volume</h3>
 
   <blockquote>
     "Many of the classic problems of developing software products derive from this essential complexity and its nonlinear increase with size."
@@ -391,7 +465,7 @@
     <cite>Edsger W. Dijkstra, EWD1243, 1997</cite>
   </blockquote>
 
-  <h3>4. Type-Driven Development</h3>
+  <h3 id="theory-type-driven">4. Type-Driven Development</h3>
 
   <blockquote>
     "Make illegal states unrepresentable."
@@ -422,6 +496,9 @@
   <span class="step-label">Step 1: Primitive Obsession</span>
   <p>The function below suffers from primitive obsession. Nothing stops a caller from passing <code>age = -5</code>, <code>children = -3</code>, or <code>income = -99999</code>. Nothing stops swapping <code>age</code> and <code>children</code> (both <code>int</code>). Every other function that uses these values must re-implement the same guards.</p>
 
+  <div class="concept-badge-row">
+    <button class="concept-badge" data-target="theory-primitive-obsession">Primitive Obsession<span class="badge-tooltip">The use of primitive data types to represent domain concepts.</span></button>
+  </div>
   <div class="code-block-wrap" id="block-step1">
     <div class="tab-bar" data-block="block-step1"></div>
     <div class="tab-panes"></div>
@@ -431,6 +508,9 @@
   <span class="step-label">Step 2: Inline Validation</span>
   <p>Better. But every function that receives <code>age</code>, <code>children</code>, or <code>income</code> duplicates this code. The complexity caused by control has grown: we added three conditional branches that have nothing to do with the tax calculation itself.</p>
 
+  <div class="concept-badge-row">
+    <button class="concept-badge" data-target="theory-control">Complexity: Control<span class="badge-tooltip">Conditional validation guards are accidental control flow — they specify how, not what.</span></button>
+  </div>
   <div class="code-block-wrap" id="block-step2">
     <div class="tab-bar" data-block="block-step2"></div>
     <div class="tab-panes"></div>
@@ -440,6 +520,9 @@
   <span class="step-label">Step 3: Extract Assertions</span>
   <p>Validation is now reusable. But look at the function signature: <code>(string, int, int, float)</code>. It still communicates nothing. An architectural diagram of this function reveals no domain concepts: four primitives go in, a float comes out.</p>
 
+  <div class="concept-badge-row">
+    <button class="concept-badge" data-target="theory-make-implicit-explicit">Make Implicit Concepts Explicit<span class="badge-tooltip">Concepts present in domain discussions must become first-class types in the model.</span></button>
+  </div>
   <div class="code-block-wrap" id="block-step3">
     <div class="tab-bar" data-block="block-step3"></div>
     <div class="tab-panes"></div>
@@ -518,6 +601,10 @@ classDiagram
   <span class="step-label">Step 4: Value Objects</span>
   <p>With value objects, validation lives in the constructor. The function body shrinks to pure business logic.</p>
 
+  <div class="concept-badge-row">
+    <button class="concept-badge" data-target="theory-make-implicit-explicit">Make Implicit Concepts Explicit<span class="badge-tooltip">Concepts present in domain discussions must become first-class types in the model.</span></button>
+    <button class="concept-badge" data-target="theory-type-driven">Type-Driven Development<span class="badge-tooltip">Make illegal states unrepresentable.</span></button>
+  </div>
   <div class="code-block-wrap" id="block-step4">
     <div class="tab-bar" data-block="block-step4"></div>
     <div class="tab-panes"></div>
@@ -587,6 +674,10 @@ stateDiagram-v2
   <h3>Before: Naive Controller</h3>
   <p>In a naive implementation, the controller absorbs all the complexity we extracted into value objects.</p>
 
+  <div class="concept-badge-row">
+    <button class="concept-badge" data-target="theory-control">Complexity: Control<span class="badge-tooltip">Conditional validation guards are accidental control flow — they specify how, not what.</span></button>
+    <button class="concept-badge" data-target="theory-state">Complexity: State<span class="badge-tooltip">Mutable validation flags make systems unpredictable. The type IS the state.</span></button>
+  </div>
   <div class="code-block-wrap" id="block-naive">
     <div class="tab-bar" data-block="block-naive"></div>
     <div class="tab-panes"></div>
@@ -595,6 +686,10 @@ stateDiagram-v2
   <h3>After: Type-Driven Controller</h3>
   <p>Since Symfony 6.3, the <code>MapQueryParameter</code> attribute combined with a custom <code>NormalizerInterface</code> allows the framework dispatcher to automatically deserialize query parameters into value objects before the controller is called. You register a normalizer once, and every controller that type-hints the value object benefits automatically.</p>
 
+  <div class="concept-badge-row">
+    <button class="concept-badge" data-target="theory-type-driven">Type-Driven Development<span class="badge-tooltip">Make illegal states unrepresentable.</span></button>
+    <button class="concept-badge" data-target="theory-make-implicit-explicit">Make Implicit Concepts Explicit<span class="badge-tooltip">Concepts present in domain discussions must become first-class types in the model.</span></button>
+  </div>
   <div class="code-block-wrap" id="block-typed">
     <div class="tab-bar" data-block="block-typed"></div>
     <div class="tab-panes"></div>
@@ -646,6 +741,11 @@ stateDiagram-v2
     <span>TaxResult</span>
   </div>
 
+  <div class="concept-badge-row">
+    <button class="concept-badge" data-target="theory-state">Complexity: State<span class="badge-tooltip">The state of the request is encoded in its type — no flags needed.</span></button>
+    <button class="concept-badge" data-target="theory-control">Complexity: Control<span class="badge-tooltip">Construction either succeeds or throws. No branching in business logic.</span></button>
+    <button class="concept-badge" data-target="theory-type-driven">Type-Driven Development<span class="badge-tooltip">Make illegal states unrepresentable.</span></button>
+  </div>
   <div class="code-block-wrap" id="block-statemachine">
     <div class="tab-bar" data-block="block-statemachine"></div>
     <div class="tab-panes"></div>
@@ -2169,6 +2269,20 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.mermaid) {
     mermaid.initialize({ startOnLoad: true, theme: 'dark' });
   }
+
+  // Concept badge scroll-to-theory
+  document.querySelectorAll('.concept-badge[data-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Brief highlight flash on the target heading
+        target.style.transition = 'background 0.2s';
+        target.style.background = '#ede9fe';
+        setTimeout(() => { target.style.background = ''; }, 1200);
+      }
+    });
+  });
 });
 </script>
 </body>
