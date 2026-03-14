@@ -1562,6 +1562,30 @@ final class AgeNormalizer implements DenormalizerInterface
     }
 }
 
+final class ChildCountNormalizer implements DenormalizerInterface
+{
+    public function denormalize(mixed $data, string $type, ...): ChildCount
+    {
+        return ChildCount::fromInt((int) $data);
+    }
+    public function supportsDenormalization(mixed $data, string $type, ...): bool
+    {
+        return $type === ChildCount::class;
+    }
+}
+
+final class IncomeNormalizer implements DenormalizerInterface
+{
+    public function denormalize(mixed $data, string $type, ...): Income
+    {
+        return Income::fromFloat((float) $data);
+    }
+    public function supportsDenormalization(mixed $data, string $type, ...): bool
+    {
+        return $type === Income::class;
+    }
+}
+
 #[Route('/calculate-tax', methods: ['GET'])]
 public function calculateTax(
     #[MapQueryParameter] Age $age,
