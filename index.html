@@ -836,13 +836,11 @@ stateDiagram-v2
 // ══════════════════════════════════════════════════════════════════
 // GLOBAL STATE
 // ══════════════════════════════════════════════════════════════════
-let activeTab = 'php-symfony';
+let activeTab = 'php';
 
 const TABS = [
-  { id: 'php-symfony',  label: 'PHP · Symfony'  },
-  { id: 'php-laravel',  label: 'PHP · Laravel'  },
+  { id: 'php',          label: 'PHP'             },
   { id: 'typescript',   label: 'TypeScript'      },
-  { id: 'nextjs',       label: 'Next.js'         },
   { id: 'java',         label: 'Java · Spring'   },
   { id: 'rust',         label: 'Rust · Axum'     },
   { id: 'python',       label: 'Python'          },
@@ -850,10 +848,8 @@ const TABS = [
 ];
 
 const LANG_MAP = {
-  'php-symfony': 'language-php',
-  'php-laravel': 'language-php',
+  'php':         'language-php',
   'typescript':  'language-typescript',
-  'nextjs':      'language-typescript',
   'java':        'language-java',
   'rust':        'language-rust',
   'python':      'language-python',
@@ -866,20 +862,7 @@ const LANG_MAP = {
 
 // ── STEP 1: Primitive Obsession ──
 const step1 = {
-  'php-symfony': `function tax_calculation(
-    string $username,
-    int $age,
-    int $children,
-    float $income
-): float {
-    $rate = 0.30;
-    if ($age >= 65) {
-        $rate -= 0.05;
-    }
-    $rate -= $children * 0.01;
-    return $income * $rate;
-}`,
-  'php-laravel': `function tax_calculation(
+  'php': `function tax_calculation(
     string $username,
     int $age,
     int $children,
@@ -893,17 +876,6 @@ const step1 = {
     return $income * $rate;
 }`,
   'typescript': `function taxCalculation(
-    username: string,
-    age: number,
-    children: number,
-    income: number
-): number {
-    let rate = 0.30;
-    if (age >= 65) rate -= 0.05;
-    rate -= children * 0.01;
-    return income * rate;
-}`,
-  'nextjs': `function taxCalculation(
     username: string,
     age: number,
     children: number,
@@ -954,29 +926,7 @@ const step1 = {
 
 // ── STEP 2: Inline Validation ──
 const step2 = {
-  'php-symfony': `function tax_calculation(
-    string $username,
-    int $age,
-    int $children,
-    float $income
-): float {
-    if ($age < 0 || $age > 120) {
-        throw new \\InvalidArgumentException('Age must be between 0 and 120');
-    }
-    if ($children < 0) {
-        throw new \\InvalidArgumentException('Children count cannot be negative');
-    }
-    if ($income < 0) {
-        throw new \\InvalidArgumentException('Income cannot be negative');
-    }
-    $rate = 0.30;
-    if ($age >= 65) {
-        $rate -= 0.05;
-    }
-    $rate -= $children * 0.01;
-    return $income * $rate;
-}`,
-  'php-laravel': `function tax_calculation(
+  'php': `function tax_calculation(
     string $username,
     int $age,
     int $children,
@@ -999,26 +949,6 @@ const step2 = {
     return $income * $rate;
 }`,
   'typescript': `function taxCalculation(
-    username: string,
-    age: number,
-    children: number,
-    income: number
-): number {
-    if (age < 0 || age > 120) {
-        throw new Error('Age must be between 0 and 120, got ' + age);
-    }
-    if (children < 0) {
-        throw new Error('Children count cannot be negative');
-    }
-    if (income < 0) {
-        throw new Error('Income cannot be negative');
-    }
-    let rate = 0.30;
-    if (age >= 65) rate -= 0.05;
-    rate -= children * 0.01;
-    return income * rate;
-}`,
-  'nextjs': `function taxCalculation(
     username: string,
     age: number,
     children: number,
@@ -1096,42 +1026,7 @@ fn tax_calculation(
 
 // ── STEP 3: Extract Assertions ──
 const step3 = {
-  'php-symfony': `function assert_valid_age(int $age): void {
-    if ($age < 0 || $age > 120) {
-        throw new \\InvalidArgumentException('Age must be between 0 and 120');
-    }
-}
-
-function assert_valid_children(int $children): void {
-    if ($children < 0) {
-        throw new \\InvalidArgumentException('Children count cannot be negative');
-    }
-}
-
-function assert_valid_income(float $income): void {
-    if ($income < 0) {
-        throw new \\InvalidArgumentException('Income cannot be negative');
-    }
-}
-
-function tax_calculation(
-    string $username,
-    int $age,
-    int $children,
-    float $income
-): float {
-    assert_valid_age($age);
-    assert_valid_children($children);
-    assert_valid_income($income);
-
-    $rate = 0.30;
-    if ($age >= 65) {
-        $rate -= 0.05;
-    }
-    $rate -= $children * 0.01;
-    return $income * $rate;
-}`,
-  'php-laravel': `function assert_valid_age(int $age): void {
+  'php': `function assert_valid_age(int $age): void {
     if ($age < 0 || $age > 120) {
         throw new \\InvalidArgumentException('Age must be between 0 and 120');
     }
@@ -1167,30 +1062,6 @@ function tax_calculation(
     return $income * $rate;
 }`,
   'typescript': `function assertValidAge(age: number): void {
-    if (age < 0 || age > 120)
-        throw new Error('Age must be between 0 and 120, got ' + age);
-}
-function assertValidChildren(children: number): void {
-    if (children < 0)
-        throw new Error('Children count cannot be negative');
-}
-function assertValidIncome(income: number): void {
-    if (income < 0)
-        throw new Error('Income cannot be negative');
-}
-
-function taxCalculation(
-    username: string, age: number, children: number, income: number
-): number {
-    assertValidAge(age);
-    assertValidChildren(children);
-    assertValidIncome(income);
-    let rate = 0.30;
-    if (age >= 65) rate -= 0.05;
-    rate -= children * 0.01;
-    return income * rate;
-}`,
-  'nextjs': `function assertValidAge(age: number): void {
     if (age < 0 || age > 120)
         throw new Error('Age must be between 0 and 120, got ' + age);
 }
@@ -1295,7 +1166,7 @@ def taxCalculation(username: String, age: Int, children: Int, income: Double): D
 
 // ── STEP 4: Value Objects ──
 const step4 = {
-  'php-symfony': `final class Age
+  'php': `final class Age
 {
     private function __construct(private readonly int $value) {}
 
@@ -1355,80 +1226,6 @@ final class UserName
     public function getValue(): string { return $this->value; }
 }
 
-function tax_calculation(
-    UserName $username,
-    Age $age,
-    ChildCount $children,
-    Income $income
-): float {
-    $rate = 0.30;
-    if ($age->isSenior()) {
-        $rate -= 0.05;
-    }
-    $rate -= $children->getValue() * 0.01;
-    return $income->getValue() * $rate;
-}`,
-  'php-laravel': `final class Age
-{
-    private function __construct(private readonly int $value) {}
-
-    public static function fromInt(int $value): self
-    {
-        if ($value < 0 || $value > 120) {
-            throw new \\InvalidArgumentException(
-                "Age must be between 0 and 120, got {$value}"
-            );
-        }
-        return new self($value);
-    }
-
-    public function isSenior(): bool { return $this->value >= 65; }
-    public function getValue(): int  { return $this->value; }
-}
-
-final class ChildCount
-{
-    private function __construct(private readonly int $value) {}
-
-    public static function fromInt(int $value): self
-    {
-        if ($value < 0) {
-            throw new \\InvalidArgumentException("Child count cannot be negative");
-        }
-        return new self($value);
-    }
-    public function getValue(): int { return $this->value; }
-}
-
-final class Income
-{
-    private function __construct(private readonly float $value) {}
-
-    public static function fromFloat(float $value): self
-    {
-        if ($value < 0) {
-            throw new \\InvalidArgumentException("Income cannot be negative");
-        }
-        return new self($value);
-    }
-    public function getValue(): float { return $this->value; }
-}
-
-final class UserName
-{
-    private function __construct(private readonly string $value) {}
-
-    public static function fromString(string $value): self
-    {
-        if (trim($value) === '') {
-            throw new \\InvalidArgumentException('Username cannot be empty');
-        }
-        return new self(trim($value));
-    }
-    public function getValue(): string { return $this->value; }
-}
-
-// Value objects are framework-agnostic
 function tax_calculation(
     UserName $username,
     Age $age,
@@ -1480,53 +1277,6 @@ class UserName {
     getValue(): string { return this.value; }
 }
 
-function taxCalculation(
-    username: UserName, age: Age, children: ChildCount, income: Income
-): number {
-    let rate = 0.30;
-    if (age.isSenior()) rate -= 0.05;
-    rate -= children.getValue() * 0.01;
-    return income.getValue() * rate;
-}`,
-  'nextjs': `class Age {
-    private constructor(private readonly value: number) {}
-    static fromNumber(value: number): Age {
-        if (value < 0 || value > 120)
-            throw new Error('Age must be between 0 and 120, got ' + value);
-        return new Age(value);
-    }
-    isSenior(): boolean { return this.value >= 65; }
-    getValue(): number  { return this.value; }
-}
-
-class ChildCount {
-    private constructor(private readonly value: number) {}
-    static fromNumber(value: number): ChildCount {
-        if (value < 0) throw new Error('Child count cannot be negative');
-        return new ChildCount(Math.floor(value));
-    }
-    getValue(): number { return this.value; }
-}
-
-class Income {
-    private constructor(private readonly value: number) {}
-    static fromNumber(value: number): Income {
-        if (value < 0) throw new Error('Income cannot be negative');
-        return new Income(value);
-    }
-    getValue(): number { return this.value; }
-}
-
-class UserName {
-    private constructor(private readonly value: string) {}
-    static fromString(value: string): UserName {
-        if (!value.trim()) throw new Error('Username cannot be empty');
-        return new UserName(value.trim());
-    }
-    getValue(): string { return this.value; }
-}
-
-// Value objects are framework-agnostic
 function taxCalculation(
     username: UserName, age: Age, children: ChildCount, income: Income
 ): number {
@@ -1704,7 +1454,8 @@ def taxCalculation(username: UserName, age: Age, children: ChildCount, income: I
 
 // ── NAIVE CONTROLLER ──
 const naiveController = {
-  'php-symfony': `#[Route('/calculate-tax', methods: ['GET'])]
+  'php': `// Symfony
+#[Route('/calculate-tax', methods: ['GET'])]
 public function calculateTax(Request $request): JsonResponse
 {
     $age      = (int)   $request->query->get('age');
@@ -1713,10 +1464,11 @@ public function calculateTax(Request $request): JsonResponse
 
     // all validation happens here again...
     $result = tax_calculation($age, $children, $income);
-
     return new JsonResponse(['tax' => $result]);
-}`,
-  'php-laravel': `public function calculateTax(Request $request): JsonResponse
+}
+
+// Laravel
+public function calculateTax(Request $request): JsonResponse
 {
     $age      = (int)   $request->query('age');
     $children = (int)   $request->query('children');
@@ -1724,10 +1476,10 @@ public function calculateTax(Request $request): JsonResponse
 
     // all validation happens here again...
     $result = tax_calculation($age, $children, $income);
-
     return response()->json(['tax' => $result]);
 }`,
-  'typescript': `app.get('/calculate-tax', (req: Request, res: Response) => {
+  'typescript': `// Express (Node.js)
+app.get('/calculate-tax', (req: Request, res: Response) => {
     const age      = parseInt(req.query.age as string);
     const children = parseInt(req.query.children as string);
     const income   = parseFloat(req.query.income as string);
@@ -1735,8 +1487,9 @@ public function calculateTax(Request $request): JsonResponse
     // all validation happens here again...
     const result = taxCalculation(age, children, income);
     res.json({ tax: result });
-});`,
-  'nextjs': `// app/api/calculate-tax/route.ts
+});
+
+// Next.js (app/api/calculate-tax/route.ts)
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const age      = parseInt(searchParams.get('age')      ?? '0');
@@ -1795,7 +1548,8 @@ def calculateTax = Action { request =>
 
 // ── TYPED CONTROLLER ──
 const typedController = {
-  'php-symfony': `// Register once; Symfony Serializer handles deserialization automatically
+  'php': `// ── Symfony: MapQueryParameter + custom Normalizer ──
+
 final class AgeNormalizer implements DenormalizerInterface
 {
     public function denormalize(mixed $data, string $type, ...): Age
@@ -1808,7 +1562,6 @@ final class AgeNormalizer implements DenormalizerInterface
     }
 }
 
-// Controller: no defensive code
 #[Route('/calculate-tax', methods: ['GET'])]
 public function calculateTax(
     #[MapQueryParameter] Age $age,
@@ -1817,8 +1570,10 @@ public function calculateTax(
 ): JsonResponse {
     $result = tax_calculation($age, $children, $income);
     return new JsonResponse(['tax' => $result]);
-}`,
-  'php-laravel': `// Form Request: validation and domain casting in one place
+}
+
+// ── Laravel: FormRequest ──
+
 final class CalculateTaxRequest extends FormRequest
 {
     public function rules(): array
@@ -1835,7 +1590,6 @@ final class CalculateTaxRequest extends FormRequest
     public function income(): Income   { return Income::fromFloat($this->float('income')); }
 }
 
-// Controller: no defensive code
 public function calculateTax(CalculateTaxRequest $request): JsonResponse
 {
     $result = tax_calculation($request->age(), $request->children(), $request->income());
@@ -1850,6 +1604,7 @@ const TaxSchema = z.object({
     income:   z.coerce.number().min(0),
 });
 
+// Express (Node.js)
 app.get('/calculate-tax', (req: Request, res: Response) => {
     const parsed = TaxSchema.safeParse(req.query);
     if (!parsed.success) {
@@ -1862,16 +1617,9 @@ app.get('/calculate-tax', (req: Request, res: Response) => {
         Income.fromNumber(income)
     );
     res.json({ tax: result });
-});`,
-  'nextjs': `// app/api/calculate-tax/route.ts
-import { z } from 'zod';
-
-const TaxSchema = z.object({
-    age:      z.coerce.number().int().min(0).max(120),
-    children: z.coerce.number().int().min(0),
-    income:   z.coerce.number().min(0),
 });
 
+// Next.js (app/api/calculate-tax/route.ts)
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const parsed = TaxSchema.safeParse(Object.fromEntries(searchParams));
@@ -1960,7 +1708,7 @@ def calculateTax(age: Age, children: ChildCount, income: Income) = Authenticated
 
 // ── STATE MACHINE ──
 const stateMachine = {
-  'php-symfony': `final class AnonymousRequest
+  'php': `final class AnonymousRequest
 {
     public function __construct(private readonly string $rawUsername) {}
 
@@ -2000,54 +1748,6 @@ final class ValidatedTaxRequest
     ) {}
 }
 
-function tax_calculation(ValidatedTaxRequest $request): float
-{
-    $rate = 0.30;
-    if ($request->age->isSenior()) { $rate -= 0.05; }
-    $rate -= $request->children->getValue() * 0.01;
-    return $request->income->getValue() * $rate;
-}`,
-  'php-laravel': `final class AnonymousRequest
-{
-    public function __construct(private readonly string $rawUsername) {}
-
-    public function authenticate(SessionService $session): AuthenticatedRequest
-    {
-        $user = $session->findActiveUser($this->rawUsername);
-        if ($user === null) {
-            throw new UnauthorizedException('User is not authenticated');
-        }
-        return new AuthenticatedRequest($user);
-    }
-}
-
-final class AuthenticatedRequest
-{
-    public function __construct(public readonly AuthenticatedUser $user) {}
-
-    public function withTaxParameters(
-        int $age, int $children, float $income
-    ): ValidatedTaxRequest {
-        return new ValidatedTaxRequest(
-            $this->user,
-            Age::fromInt($age),
-            ChildCount::fromInt($children),
-            Income::fromFloat($income)
-        );
-    }
-}
-
-final class ValidatedTaxRequest
-{
-    public function __construct(
-        public readonly AuthenticatedUser $user,
-        public readonly Age $age,
-        public readonly ChildCount $children,
-        public readonly Income $income
-    ) {}
-}
-
-// Domain state machine classes are framework-agnostic
 function tax_calculation(ValidatedTaxRequest $request): float
 {
     $rate = 0.30;
@@ -2087,45 +1787,6 @@ class ValidatedTaxRequest {
     ) {}
 }
 
-function taxCalculation(req: ValidatedTaxRequest): number {
-    let rate = 0.30;
-    if (req.age.isSenior()) rate -= 0.05;
-    rate -= req.children.getValue() * 0.01;
-    return req.income.getValue() * rate;
-}`,
-  'nextjs': `class AnonymousRequest {
-    constructor(private readonly rawUsername: string) {}
-
-    authenticate(session: SessionService): AuthenticatedRequest {
-        const user = session.findActiveUser(this.rawUsername);
-        if (!user) throw new UnauthorizedError('User is not authenticated');
-        return new AuthenticatedRequest(user);
-    }
-}
-
-class AuthenticatedRequest {
-    constructor(public readonly user: AuthenticatedUser) {}
-
-    withTaxParameters(age: number, children: number, income: number): ValidatedTaxRequest {
-        return new ValidatedTaxRequest(
-            this.user,
-            Age.fromNumber(age),
-            ChildCount.fromNumber(children),
-            Income.fromNumber(income)
-        );
-    }
-}
-
-class ValidatedTaxRequest {
-    constructor(
-        public readonly user: AuthenticatedUser,
-        public readonly age: Age,
-        public readonly children: ChildCount,
-        public readonly income: Income,
-    ) {}
-}
-
-// Domain state machine classes are framework-agnostic
 function taxCalculation(req: ValidatedTaxRequest): number {
     let rate = 0.30;
     if (req.age.isSenior()) rate -= 0.05;
