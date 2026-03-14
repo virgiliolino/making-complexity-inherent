@@ -1597,62 +1597,56 @@ public function calculateTax(CalculateTaxRequest $request): JsonResponse
 }`,
   'typescript': `import { z } from 'zod';
 
-// Declare domain rules once
+// Schema transforms validated numbers directly into domain types
 const TaxSchema = z.object({
-    age:      z.coerce.number().int().min(0).max(120),
-    children: z.coerce.number().int().min(0),
-    income:   z.coerce.number().min(0),
+    age:      z.coerce.number().int().min(0).max(120).transform(v => Age.fromNumber(v)),
+    children: z.coerce.number().int().min(0).transform(v => ChildCount.fromNumber(v)),
+    income:   z.coerce.number().min(0).transform(v => Income.fromNumber(v)),
 });
 
 // Express (Node.js)
 app.get('/calculate-tax', (req: Request, res: Response) => {
     const parsed = TaxSchema.safeParse(req.query);
-    if (!parsed.success) {
-        return res.status(422).json(parsed.error.flatten());
-    }
-    const { age, children, income } = parsed.data;
-    const result = taxCalculation(
-        Age.fromNumber(age),
-        ChildCount.fromNumber(children),
-        Income.fromNumber(income)
-    );
-    res.json({ tax: result });
+    if (!parsed.success) return res.status(422).json(parsed.error.flatten());
+    // parsed.data.age is already Age, not number
+    res.json({ tax: taxCalculation(parsed.data.age, parsed.data.children, parsed.data.income) });
 });
 
 // Next.js (app/api/calculate-tax/route.ts)
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const parsed = TaxSchema.safeParse(Object.fromEntries(searchParams));
-    if (!parsed.success) {
-        return Response.json(parsed.error.flatten(), { status: 422 });
-    }
-    const { age, children, income } = parsed.data;
-    const result = taxCalculation(
-        Age.fromNumber(age),
-        ChildCount.fromNumber(children),
-        Income.fromNumber(income)
-    );
-    return Response.json({ tax: result });
+    if (!parsed.success) return Response.json(parsed.error.flatten(), { status: 422 });
+    // parsed.data.age is already Age, not number
+    return Response.json({ tax: taxCalculation(parsed.data.age, parsed.data.children, parsed.data.income) });
 }`,
-  'java': `@RestController
-@Validated
-public class TaxController {
+  'java': `// Register once: Spring auto-discovers @Component converters
+@Component
+public class StringToAgeConverter implements Converter<String, Age> {
+    public Age convert(String s) { return Age.fromInt(Integer.parseInt(s)); }
+}
 
-    @GetMapping("/calculate-tax")
-    public ResponseEntity<Map<String, Double>> calculateTax(
-        @RequestParam @Min(0) @Max(120) int age,
-        @RequestParam @Min(0) int children,
-        @RequestParam @DecimalMin("0.0") double income
-    ) {
-        Age taxAge             = Age.fromInt(age);
-        ChildCount taxChildren = ChildCount.fromInt(children);
-        Income taxIncome       = Income.fromDouble(income);
+@Component
+public class StringToChildCountConverter implements Converter<String, ChildCount> {
+    public ChildCount convert(String s) { return ChildCount.fromInt(Integer.parseInt(s)); }
+}
 
-        double result = taxCalculation(taxAge, taxChildren, taxIncome);
-        return ResponseEntity.ok(Map.of("tax", result));
-    }
-    // Spring returns HTTP 400 automatically on constraint violation
-}`,
+@Component
+public class StringToIncomeConverter implements Converter<String, Income> {
+    public Income convert(String s) { return Income.fromDouble(Double.parseDouble(s)); }
+}
+
+// Controller: no construction, no validation
+@GetMapping("/calculate-tax")
+public ResponseEntity<Map<String, Double>> calculateTax(
+    @RequestParam Age age,
+    @RequestParam ChildCount children,
+    @RequestParam Income income
+) {
+    double result = taxCalculation(age, children, income);
+    return ResponseEntity.ok(Map.of("tax", result));
+}
+// Spring returns HTTP 400 automatically when any converter throws`,
   'rust': `// Implement Deserialize directly on value objects
 impl<'de> Deserialize<'de> for Age {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
@@ -1692,25 +1686,25 @@ async fn calculate_tax(
 }`,
   'python': `from fastapi import FastAPI, Depends, Query
 from typing import Annotated
+from pydantic import AfterValidator
+
+# Wire validation and construction in one place
+AgeParam      = Annotated[int,   Query(ge=0, le=120), AfterValidator(lambda v: Age(v))]
+ChildrenParam = Annotated[int,   Query(ge=0),         AfterValidator(lambda v: ChildCount(v))]
+IncomeParam   = Annotated[float, Query(ge=0),         AfterValidator(lambda v: Income(v))]
 
 app = FastAPI()
 
-# FastAPI validates and coerces query params automatically
+# age, children, income are already domain types — no construction in body
 @app.get("/calculate-tax")
 def calculate_tax_endpoint(
-    age:      Annotated[int,   Query(ge=0, le=120)],
-    children: Annotated[int,   Query(ge=0)],
-    income:   Annotated[float, Query(ge=0)],
+    age:      AgeParam,
+    children: ChildrenParam,
+    income:   IncomeParam,
     current_user: UserName = Depends(get_current_user),
 ):
-    result = tax_calculation(
-        current_user,
-        Age(age),
-        ChildCount(children),
-        Income(income),
-    )
-    return {"tax": result}
-# FastAPI returns HTTP 422 automatically on constraint violation`,
+    return {"tax": tax_calculation(current_user, age, children, income)}
+# FastAPI returns HTTP 422 automatically on validation or AfterValidator failure`,
   'scala': `// Play Framework with custom query binders
 object AgeBinder {
   implicit val binder: QueryStringBindable[Age] =
