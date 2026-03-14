@@ -1653,20 +1653,42 @@ public class TaxController {
     }
     // Spring returns HTTP 400 automatically on constraint violation
 }`,
-  'rust': `#[derive(Deserialize)]
-struct TaxParams { age: u32, children: u32, income: f64 }
+  'rust': `// Implement Deserialize directly on value objects
+impl<'de> Deserialize<'de> for Age {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let v = u32::deserialize(d)?;
+        if v > 120 {
+            return Err(D::Error::custom(format!("Age must be <= 120, got {}", v)));
+        }
+        Ok(Age(v))
+    }
+}
 
+impl<'de> Deserialize<'de> for Income {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let v = f64::deserialize(d)?;
+        if v < 0.0 {
+            return Err(D::Error::custom(format!("Income cannot be negative, got {}", v)));
+        }
+        Ok(Income(v))
+    }
+}
+
+// ChildCount uses u32: non-negativity is enforced by the type itself
+
+#[derive(Deserialize)]
+struct TaxParams {
+    age:      Age,        // validated 0..=120 during deserialization
+    children: ChildCount, // u32 is always >= 0, no custom impl needed
+    income:   Income,     // validated >= 0 during deserialization
+}
+
+// No Result, no map_err, no ? — Axum returns 422 automatically
 async fn calculate_tax(
     Query(params): Query<TaxParams>,
-) -> Result<Json<Value>, (StatusCode, String)> {
-    let age     = Age::from_u32(params.age)
-        .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e))?;
-    let children = ChildCount::from_u32(params.children);
-    let income  = Income::from_f64(params.income)
-        .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e))?;
-
-    let result = tax_calculation(&age, &children, &income);
-    Ok(Json(json!({ "tax": result })))
+) -> Json<Value> {
+    let result = tax_calculation(&params.age, &params.children, &params.income);
+    Json(json!({ "tax": result }))
 }`,
   'python': `from fastapi import FastAPI, Depends, Query
 from typing import Annotated
