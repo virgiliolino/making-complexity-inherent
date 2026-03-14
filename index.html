@@ -1,0 +1,2175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Inherent Logic of Explicit Correctness</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #fafafa;
+      color: #1a1a2e;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 17px;
+      line-height: 1.75;
+      padding: 2rem 1rem;
+    }
+
+    article {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    header {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #1a1a2e;
+      margin-bottom: 0.75rem;
+    }
+
+    header .subtitle {
+      font-size: 1.1rem;
+      color: #555;
+      font-style: italic;
+    }
+
+    /* ── Typography ── */
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2d2d4e;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    p {
+      margin-bottom: 1.2rem;
+    }
+
+    ul, ol {
+      margin: 0 0 1.2rem 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.4rem;
+    }
+
+    strong {
+      font-weight: 700;
+    }
+
+    /* ── Blockquote ── */
+    blockquote {
+      border-left: 4px solid #7c3aed;
+      margin: 1.5rem 0;
+      padding: 0.8rem 1.2rem;
+      background: #f3f0ff;
+      border-radius: 0 6px 6px 0;
+      font-style: italic;
+      color: #333;
+    }
+
+    blockquote cite {
+      display: block;
+      margin-top: 0.5rem;
+      font-style: normal;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    /* ── Section labels ── */
+    .part-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #7c3aed;
+      margin-bottom: 0.3rem;
+    }
+
+    /* ── Diagram ── */
+    .diagram-wrap {
+      margin: 2rem 0;
+      text-align: center;
+    }
+
+    .diagram-wrap pre.mermaid {
+      display: inline-block;
+      max-width: 100%;
+      text-align: left;
+    }
+
+    .diagram-caption {
+      margin-top: 0.6rem;
+      font-size: 0.88rem;
+      color: #555;
+      font-style: italic;
+      text-align: center;
+    }
+
+    /* ── Code tabs wrapper ── */
+    .code-block-wrap {
+      margin: 2rem 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      background: #1e2030;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 0.6rem 1rem;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: #8b8fa8;
+      font-size: 0.82rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .tab-btn:hover {
+      color: #cdd2f0;
+    }
+
+    .tab-btn.active {
+      color: #ffffff;
+      border-bottom-color: #7c3aed;
+    }
+
+    /* Code pane */
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    .tab-pane pre {
+      margin: 0;
+      border-radius: 0;
+      background: #0d1117 !important;
+    }
+
+    .tab-pane pre code {
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", "Monaco", monospace;
+      font-size: 0.83rem;
+      line-height: 1.6;
+      background: #0d1117 !important;
+      border-radius: 0;
+      padding: 1.2rem 1.4rem !important;
+      display: block;
+      overflow-x: auto;
+    }
+
+    /* ── Plain YAML code blocks (no tabs) ── */
+    .yaml-block {
+      margin: 1.5rem 0 2rem;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+    }
+
+    .yaml-block pre {
+      margin: 0;
+      background: #0d1117 !important;
+    }
+
+    .yaml-block pre code {
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Consolas", "Monaco", monospace;
+      font-size: 0.83rem;
+      line-height: 1.6;
+      background: #0d1117 !important;
+      padding: 1.2rem 1.4rem !important;
+      display: block;
+      overflow-x: auto;
+    }
+
+    /* ── State machine transition text ── */
+    .transition-flow {
+      background: #f3f0ff;
+      border: 1px solid #c4b5fd;
+      border-radius: 8px;
+      padding: 1.2rem 1.6rem;
+      font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.9rem;
+      line-height: 2;
+      margin: 1.5rem 0;
+      color: #2d2d4e;
+    }
+
+    .transition-flow .arrow { color: #7c3aed; font-weight: 700; }
+    .transition-flow .comment { color: #666; font-style: italic; }
+
+    /* ── Highlighted note / callout ── */
+    .callout {
+      background: #f3f0ff;
+      border: 1px solid #c4b5fd;
+      border-left: 4px solid #7c3aed;
+      border-radius: 0 8px 8px 0;
+      padding: 1rem 1.2rem;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
+
+    /* ── Summary table ── */
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.9rem;
+    }
+
+    .summary-table th {
+      background: #1e2030;
+      color: #fff;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .summary-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e0e0e0;
+      vertical-align: top;
+    }
+
+    .summary-table tr:nth-child(even) td {
+      background: #f3f0ff;
+    }
+
+    /* ── References ── */
+    .references {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 2px solid #e0e0e0;
+    }
+
+    .references h2 {
+      border: none;
+      margin-top: 0;
+    }
+
+    .references ol {
+      font-size: 0.9rem;
+      color: #444;
+    }
+
+    .references li {
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── Step label ── */
+    .step-label {
+      display: inline-block;
+      background: #7c3aed;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    /* ── Footer quote ── */
+    .footer-quote {
+      margin: 2rem 0;
+      text-align: center;
+      font-style: italic;
+      font-size: 1rem;
+      color: #555;
+      padding: 1rem;
+      border-top: 1px solid #e0e0e0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.6rem; }
+      h2 { font-size: 1.3rem; }
+      body { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+<article>
+
+  <!-- ══ HEADER ══ -->
+  <header>
+    <h1>The Inherent Logic of Explicit Correctness</h1>
+    <p class="subtitle">How type-driven development eliminates accidental complexity by encoding domain invariants into the type system</p>
+  </header>
+
+  <!-- ══ PART 1: THEORETICAL FOUNDATIONS ══ -->
+  <span class="part-label">Part 1</span>
+  <h2>Theoretical Foundations</h2>
+
+  <h3>1. Primitive Obsession</h3>
+
+  <blockquote>
+    "Primitive Obsession is the use of primitive data types to represent domain concepts."
+    <cite>Martin Fowler, <em>Refactoring: Improving the Design of Existing Code</em>, 1999</cite>
+  </blockquote>
+
+  <p>The code smell describes the habit of using <code>string</code>, <code>int</code>, <code>float</code> everywhere instead of creating small domain-specific types. An age, an income, a child count, and a postal code are all integers, but they are not the same thing. Treating them as raw integers forces every consumer to remember and re-implement the rules that distinguish them.</p>
+
+  <h3>2. Make Implicit Concepts Explicit</h3>
+
+  <blockquote>
+    "Many transformations of domain models and the corresponding code happen when developers recognize a concept that has been hinted at in discussion or present implicitly in the design, and they then represent it explicitly in the model with one or more objects or relationships."
+    <cite>Eric Evans, <em>Domain-Driven Design: Tackling Complexity in the Heart of Software</em>, Chapter 9, 2003</cite>
+  </blockquote>
+
+  <p>If a concept exists in the domain language but is not represented as a first-class object in the code, it is implicit. Making it explicit means giving it a name, a type, a constructor, and a home for its invariants.</p>
+
+  <h3>3. The Three Causes of Complexity (Out of the Tar Pit)</h3>
+
+  <p>Ben Moseley and Peter Marks (2006) identify three causes of complexity in software systems.</p>
+
+  <h3>3.1 Complexity Caused by State</h3>
+
+  <blockquote>
+    "The single biggest remaining cause of complexity in most contemporary large systems is state, and the more we can do to limit and manage state, the better."
+    <cite>Moseley &amp; Marks, <em>Out of the Tar Pit</em>, 2006</cite>
+  </blockquote>
+
+  <p>Mutable state makes systems unpredictable: a test on a system in one state tells you nothing about its behaviour in a different state. Every added bit of state doubles the number of possible states the system can be in.</p>
+
+  <h3>3.2 Complexity Caused by Control</h3>
+
+  <blockquote>
+    "Control is basically about the order in which things happen. When a programmer is forced to specify the control, he or she is being forced to specify an aspect of how the system should work rather than simply what is desired. Effectively they are being forced to over-specify the problem."
+    <cite>Moseley &amp; Marks, <em>Out of the Tar Pit</em>, 2006</cite>
+  </blockquote>
+
+  <p>Imperative code forces you to state execution order even when you only care about the relationship between values. Every conditional guard, every nested validation block, is accidental control flow.</p>
+
+  <h3>3.3 Complexity Caused by Code Volume</h3>
+
+  <blockquote>
+    "Many of the classic problems of developing software products derive from this essential complexity and its nonlinear increase with size."
+    <cite>Fred Brooks, cited in <em>Out of the Tar Pit</em>, 2006</cite>
+  </blockquote>
+
+  <p>Code volume is largely a secondary effect of the first two causes. Complexity grows nonlinearly with size.</p>
+
+  <blockquote>
+    "...we have to keep it crisp, disentangled, and simple if we refuse to be crushed by the complexities of our own making..."
+    <cite>Edsger W. Dijkstra, EWD1243, 1997</cite>
+  </blockquote>
+
+  <h3>4. Type-Driven Development</h3>
+
+  <blockquote>
+    "Make illegal states unrepresentable."
+    <cite>Yaron Minsky, Harvard guest lecture, 2010</cite>
+  </blockquote>
+
+  <p>The approach was formally developed in Edwin Brady's <em>Type-Driven Development with Idris</em> (Manning, 2016). The core idea: encode domain constraints into types at construction time, so any value that exists in the system is already valid by definition. Applied to function signatures, the signature itself becomes documentation.</p>
+
+  <!-- ══ PART 2: THE THEORY ══ -->
+  <span class="part-label">Part 2</span>
+  <h2>The Theory</h2>
+
+  <p>A strongly typed flow, in which a request transitions through a sequence of value-typed stages (a type-driven state machine), simultaneously addresses all three causes of complexity:</p>
+
+  <ul>
+    <li><strong>State complexity</strong> is reduced because the state of the request is encoded in its type. You do not need to store or manage intermediate validation flags; the type at each stage is the state.</li>
+    <li><strong>Control complexity</strong> is reduced because conditional validation guards disappear from function bodies. Construction either succeeds or throws. The function that receives a well-typed argument has no branching to perform for correctness.</li>
+    <li><strong>Code volume</strong> is reduced because validation is written once, inside the value object constructor, and reused everywhere the type appears.</li>
+  </ul>
+
+  <p>Furthermore, this principle generalises beyond APIs. Functions, services, mobile app flows, website page transitions: any system with identifiable stages can be modelled as a type-driven state machine where each stage is a distinct type.</p>
+
+  <!-- ══ PART 3: CODE EVOLUTION IN PHP ══ -->
+  <span class="part-label">Part 3</span>
+  <h2>Code Evolution</h2>
+
+  <!-- Step 1 -->
+  <span class="step-label">Step 1: Primitive Obsession</span>
+  <p>The function below suffers from primitive obsession. Nothing stops a caller from passing <code>age = -5</code>, <code>children = -3</code>, or <code>income = -99999</code>. Nothing stops swapping <code>age</code> and <code>children</code> (both <code>int</code>). Every other function that uses these values must re-implement the same guards.</p>
+
+  <div class="code-block-wrap" id="block-step1">
+    <div class="tab-bar" data-block="block-step1"></div>
+    <div class="tab-panes"></div>
+  </div>
+
+  <!-- Step 2 -->
+  <span class="step-label">Step 2: Inline Validation</span>
+  <p>Better. But every function that receives <code>age</code>, <code>children</code>, or <code>income</code> duplicates this code. The complexity caused by control has grown: we added three conditional branches that have nothing to do with the tax calculation itself.</p>
+
+  <div class="code-block-wrap" id="block-step2">
+    <div class="tab-bar" data-block="block-step2"></div>
+    <div class="tab-panes"></div>
+  </div>
+
+  <!-- Step 3 -->
+  <span class="step-label">Step 3: Extract Assertions</span>
+  <p>Validation is now reusable. But look at the function signature: <code>(string, int, int, float)</code>. It still communicates nothing. An architectural diagram of this function reveals no domain concepts: four primitives go in, a float comes out.</p>
+
+  <div class="code-block-wrap" id="block-step3">
+    <div class="tab-bar" data-block="block-step3"></div>
+    <div class="tab-panes"></div>
+  </div>
+
+  <!-- Diagrams between step 3 and step 4 -->
+  <div class="diagram-wrap">
+    <pre class="mermaid">
+classDiagram
+    class tax_calculation {
+        +calculate(username string, age int, children int, income float) float
+    }
+
+    class HiddenRules {
+        &lt;&lt;buried inside the function&gt;&gt;
+        +validateAge()
+        +validateChildren()
+        +validateIncome()
+        +applySeniorDiscount()
+        +applyChildDiscount()
+    }
+
+    tax_calculation ..> HiddenRules : all rules invisible from signature
+
+    note for tax_calculation "Signature reveals nothing.\nCallers must read the body\nto know what values are valid."
+    </pre>
+    <p class="diagram-caption">From the outside the function is a black box. A caller reading only the signature learns nothing about what values are valid or what rules apply.</p>
+  </div>
+
+  <div class="diagram-wrap">
+    <pre class="mermaid">
+classDiagram
+    class tax_calculation {
+        +calculate(username UserName, age Age, children ChildCount, income Income) float
+    }
+
+    class UserName {
+        -value string
+        +fromString(value string) UserName
+        +getValue() string
+    }
+
+    class Age {
+        -value int
+        +fromInt(value int) Age
+        +isSenior() bool
+        +getValue() int
+    }
+
+    class ChildCount {
+        -value int
+        +fromInt(value int) ChildCount
+        +getValue() int
+    }
+
+    class Income {
+        -value float
+        +fromFloat(value float) Income
+        +getValue() float
+    }
+
+    tax_calculation --> UserName
+    tax_calculation --> Age
+    tax_calculation --> ChildCount
+    tax_calculation --> Income
+
+    note for UserName "invariant: non-empty string"
+    note for Age "invariant: 0 to 120"
+    note for ChildCount "invariant: &gt;= 0"
+    note for Income "invariant: &gt;= 0"
+    </pre>
+    <p class="diagram-caption">Every domain concept now has a name, a home, and a visible contract.</p>
+  </div>
+
+  <!-- Step 4 -->
+  <span class="step-label">Step 4: Value Objects</span>
+  <p>With value objects, validation lives in the constructor. The function body shrinks to pure business logic.</p>
+
+  <div class="code-block-wrap" id="block-step4">
+    <div class="tab-bar" data-block="block-step4"></div>
+    <div class="tab-panes"></div>
+  </div>
+
+  <ul>
+    <li><strong>State:</strong> there is no hidden validation state; a value either exists as a valid type or it does not exist at all.</li>
+    <li><strong>Control:</strong> the function body has one branch, and that branch is purely about tax logic, not about defensive checks.</li>
+    <li><strong>Code volume:</strong> the function is shorter; the intent is clearer.</li>
+    <li><strong>Signature as documentation:</strong> the function tells you exactly what domain concepts it requires.</li>
+  </ul>
+
+  <!-- ══ PART 4: TYPE-DRIVEN API DESIGN ══ -->
+  <span class="part-label">Part 4</span>
+  <h2>Type-Driven API Design</h2>
+
+  <div class="diagram-wrap">
+    <pre class="mermaid">
+stateDiagram-v2
+    direction TB
+
+    [*] --> IncomingRequest : HTTP GET /calculate-tax
+
+    IncomingRequest --> HTTP401 : Symfony firewall, user not authenticated
+
+    state "Authenticated Request" as AuthenticatedRequest {
+        a1 : AuthenticatedUser from session
+    }
+
+    IncomingRequest --> AuthenticatedRequest : firewall passes
+
+    state "Value Object Construction" as Construction {
+        c1 : UserName.fromString()
+        c2 : Age.fromInt()
+        c3 : ChildCount.fromInt()
+        c4 : Income.fromFloat()
+    }
+
+    AuthenticatedRequest --> Construction : framework dispatcher
+
+    Construction --> HTTP422 : any constructor throws, invalid domain value
+
+    state "Validated Tax Request" as ValidatedTaxRequest {
+        v1 : AuthenticatedUser user
+        v2 : Age age
+        v3 : ChildCount children
+        v4 : Income income
+    }
+
+    Construction --> ValidatedTaxRequest : all types constructed
+
+    state "Tax Result" as TaxResult {
+        r1 : float tax
+        r2 : float rate
+    }
+
+    ValidatedTaxRequest --> TaxResult : tax_calculation(), no guards needed
+
+    TaxResult --> [*] : HTTP 200
+
+    HTTP401 --> [*]
+    HTTP422 --> [*]
+    </pre>
+    <p class="diagram-caption">Each arrow is a transition that either succeeds (producing a richer type) or fails (producing an HTTP error). By the time tax_calculation() is reached, every guarantee has already been enforced structurally.</p>
+  </div>
+
+  <h3>Before: Naive Controller</h3>
+  <p>In a naive implementation, the controller absorbs all the complexity we extracted into value objects.</p>
+
+  <div class="code-block-wrap" id="block-naive">
+    <div class="tab-bar" data-block="block-naive"></div>
+    <div class="tab-panes"></div>
+  </div>
+
+  <h3>After: Type-Driven Controller</h3>
+  <p>Since Symfony 6.3, the <code>MapQueryParameter</code> attribute combined with a custom <code>NormalizerInterface</code> allows the framework dispatcher to automatically deserialize query parameters into value objects before the controller is called. You register a normalizer once, and every controller that type-hints the value object benefits automatically.</p>
+
+  <div class="code-block-wrap" id="block-typed">
+    <div class="tab-bar" data-block="block-typed"></div>
+    <div class="tab-panes"></div>
+  </div>
+
+  <div class="callout">
+    "The framework becomes the enforcement layer. You write the rule once (in the value object), and the entire application surface area enforces it."
+  </div>
+
+  <!-- ══ PART 5: OPENAPI BEFORE/AFTER ══ -->
+  <span class="part-label">Part 5</span>
+  <h2>OpenAPI Before/After</h2>
+
+  <p>OpenAPI 3.0 and 3.1 fully support complex types with constraints via <code>minimum</code>, <code>maximum</code>, <code>pattern</code>, <code>enum</code>, <code>format</code>, and JSON Schema composition. The contract becomes machine-readable and self-documenting.</p>
+
+  <h3>Before</h3>
+
+  <div class="yaml-block" id="yaml-before">
+    <pre><code class="language-yaml"></code></pre>
+  </div>
+
+  <p>"This tells the consumer nothing meaningful. Any string, any integer, any number is accepted according to the contract."</p>
+
+  <h3>After</h3>
+
+  <div class="yaml-block" id="yaml-after">
+    <pre><code class="language-yaml"></code></pre>
+  </div>
+
+  <ul>
+    <li><strong>Self-documenting:</strong> <code>Age</code> carries its own description and constraints.</li>
+    <li><strong>Reusable:</strong> <code>$ref</code> means the <code>Age</code> schema appears once and is referenced everywhere.</li>
+    <li><strong>Generatable:</strong> tools like API Platform can derive this OpenAPI spec directly from type-hinted controllers.</li>
+  </ul>
+
+  <!-- ══ PART 6: TYPE-DRIVEN STATE MACHINES ══ -->
+  <span class="part-label">Part 6</span>
+  <h2>Type-Driven State Machines</h2>
+
+  <p>Imagine the tax calculation requires the user to be logged in. Without typed flows, the function signature accepts a raw string as username. It cannot tell you whether that username has been authenticated. The authentication state is invisible at the type level.</p>
+
+  <div class="transition-flow">
+    <span>AnonymousRequest</span><br>
+    <span class="arrow">&nbsp;&nbsp;&nbsp;| authenticate()</span> <span class="comment">// throws if not logged in</span><br>
+    <span>AuthenticatedRequest</span><br>
+    <span class="arrow">&nbsp;&nbsp;&nbsp;| withTaxParameters()</span> <span class="comment">// throws if params invalid</span><br>
+    <span>ValidatedTaxRequest</span><br>
+    <span class="arrow">&nbsp;&nbsp;&nbsp;| calculate()</span><br>
+    <span>TaxResult</span>
+  </div>
+
+  <div class="code-block-wrap" id="block-statemachine">
+    <div class="tab-bar" data-block="block-statemachine"></div>
+    <div class="tab-panes"></div>
+  </div>
+
+  <p>"tax_calculation now receives a <code>ValidatedTaxRequest</code>. It is structurally impossible to call this function with an unauthenticated user or invalid parameters."</p>
+
+  <p><strong>The state of the request is not stored as a boolean flag or a session variable to be checked; it is encoded in the type of the object itself.</strong></p>
+
+  <!-- ══ SUMMARY TABLE ══ -->
+  <span class="part-label">Summary</span>
+  <h2>Summary</h2>
+
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th>Cause</th>
+        <th>Traditional Approach</th>
+        <th>Type-Driven Approach</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>State</strong></td>
+        <td>Validation flags, checked at runtime</td>
+        <td>State encoded in the type; impossible to be in an invalid state</td>
+      </tr>
+      <tr>
+        <td><strong>Control</strong></td>
+        <td>Conditional guards in every function body</td>
+        <td>Construction either succeeds or fails; function body has no defensive branches</td>
+      </tr>
+      <tr>
+        <td><strong>Code Volume</strong></td>
+        <td>Validation repeated across consumers</td>
+        <td>Written once in the constructor, referenced everywhere via the type</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-quote">
+    "The type is the state. The transition is the operation. The function that receives the type can trust what the type guarantees."
+  </div>
+
+  <!-- ══ FINAL OPENAPI SECTION ══ -->
+  <span class="part-label">Final Contract</span>
+  <h2>Final OpenAPI: A Fully Type-Driven Contract</h2>
+
+  <p>Bringing everything together: security declared through a scheme rather than a parameter, domain types as reusable components with constraints, no primitive leakage at the boundary. The username parameter disappears entirely; the authenticated user is derived from the Bearer token by the security layer.</p>
+
+  <div class="yaml-block" id="yaml-final">
+    <pre><code class="language-yaml"></code></pre>
+  </div>
+
+  <ul>
+    <li><strong>Who can call it:</strong> only authenticated users, via Bearer token.</li>
+    <li><strong>What each parameter means:</strong> types carry their own descriptions and constraints.</li>
+    <li><strong>What can go wrong:</strong> 401 if the token is missing, 422 if a parameter violates a domain rule, each with a typed error response.</li>
+    <li><strong>What comes back:</strong> a typed result, not a raw number.</li>
+  </ul>
+
+  <p>"Every piece of knowledge that was previously buried inside the function body is now surface-level, encoded structurally in the contract itself."</p>
+
+  <!-- ══ REFERENCES ══ -->
+  <section class="references">
+    <h2>References</h2>
+    <ol>
+      <li>Evans, Eric. <em>Domain-Driven Design: Tackling Complexity in the Heart of Software</em>. Chapter 9: Making Implicit Concepts Explicit. Addison-Wesley, 2003.</li>
+      <li>Moseley, Ben and Peter Marks. <em>Out of the Tar Pit</em>. February 6, 2006.</li>
+      <li>Fowler, Martin. <em>Refactoring: Improving the Design of Existing Code</em>. Addison-Wesley, 1999.</li>
+      <li>Minsky, Yaron. "Make illegal states unrepresentable." Harvard guest lecture, 2010.</li>
+      <li>Brady, Edwin. <em>Type-Driven Development with Idris</em>. Manning, 2016.</li>
+      <li>Dijkstra, Edsger W. EWD1243. 1997.</li>
+    </ol>
+  </section>
+
+</article>
+
+<!-- CDN scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// GLOBAL STATE
+// ══════════════════════════════════════════════════════════════════
+let activeTab = 'php-symfony';
+
+const TABS = [
+  { id: 'php-symfony',  label: 'PHP · Symfony'  },
+  { id: 'php-laravel',  label: 'PHP · Laravel'  },
+  { id: 'typescript',   label: 'TypeScript'      },
+  { id: 'nextjs',       label: 'Next.js'         },
+  { id: 'java',         label: 'Java · Spring'   },
+  { id: 'rust',         label: 'Rust · Axum'     },
+];
+
+const LANG_MAP = {
+  'php-symfony': 'language-php',
+  'php-laravel': 'language-php',
+  'typescript':  'language-typescript',
+  'nextjs':      'language-typescript',
+  'java':        'language-java',
+  'rust':        'language-rust',
+};
+
+// ══════════════════════════════════════════════════════════════════
+// CODE CONTENT
+// ══════════════════════════════════════════════════════════════════
+
+// ── STEP 1: Primitive Obsession ──
+const step1 = {
+  'php-symfony': `function tax_calculation(
+    string $username,
+    int $age,
+    int $children,
+    float $income
+): float {
+    $rate = 0.30;
+    if ($age >= 65) {
+        $rate -= 0.05;
+    }
+    $rate -= $children * 0.01;
+    return $income * $rate;
+}`,
+  'php-laravel': `function tax_calculation(
+    string $username,
+    int $age,
+    int $children,
+    float $income
+): float {
+    $rate = 0.30;
+    if ($age >= 65) {
+        $rate -= 0.05;
+    }
+    $rate -= $children * 0.01;
+    return $income * $rate;
+}`,
+  'typescript': `function taxCalculation(
+    username: string,
+    age: number,
+    children: number,
+    income: number
+): number {
+    let rate = 0.30;
+    if (age >= 65) rate -= 0.05;
+    rate -= children * 0.01;
+    return income * rate;
+}`,
+  'nextjs': `function taxCalculation(
+    username: string,
+    age: number,
+    children: number,
+    income: number
+): number {
+    let rate = 0.30;
+    if (age >= 65) rate -= 0.05;
+    rate -= children * 0.01;
+    return income * rate;
+}`,
+  'java': `public class TaxService {
+    public double taxCalculation(
+        String username,
+        int age,
+        int children,
+        double income
+    ) {
+        double rate = 0.30;
+        if (age >= 65) rate -= 0.05;
+        rate -= children * 0.01;
+        return income * rate;
+    }
+}`,
+  'rust': `fn tax_calculation(
+    _username: &str,
+    age: u32,
+    children: u32,
+    income: f64,
+) -> f64 {
+    let mut rate = 0.30_f64;
+    if age >= 65 { rate -= 0.05; }
+    rate -= children as f64 * 0.01;
+    income * rate
+}`,
+};
+
+// ── STEP 2: Inline Validation ──
+const step2 = {
+  'php-symfony': `function tax_calculation(
+    string $username,
+    int $age,
+    int $children,
+    float $income
+): float {
+    if ($age < 0 || $age > 120) {
+        throw new \\InvalidArgumentException('Age must be between 0 and 120');
+    }
+    if ($children < 0) {
+        throw new \\InvalidArgumentException('Children count cannot be negative');
+    }
+    if ($income < 0) {
+        throw new \\InvalidArgumentException('Income cannot be negative');
+    }
+    $rate = 0.30;
+    if ($age >= 65) {
+        $rate -= 0.05;
+    }
+    $rate -= $children * 0.01;
+    return $income * $rate;
+}`,
+  'php-laravel': `function tax_calculation(
+    string $username,
+    int $age,
+    int $children,
+    float $income
+): float {
+    if ($age < 0 || $age > 120) {
+        throw new \\InvalidArgumentException('Age must be between 0 and 120');
+    }
+    if ($children < 0) {
+        throw new \\InvalidArgumentException('Children count cannot be negative');
+    }
+    if ($income < 0) {
+        throw new \\InvalidArgumentException('Income cannot be negative');
+    }
+    $rate = 0.30;
+    if ($age >= 65) {
+        $rate -= 0.05;
+    }
+    $rate -= $children * 0.01;
+    return $income * $rate;
+}`,
+  'typescript': `function taxCalculation(
+    username: string,
+    age: number,
+    children: number,
+    income: number
+): number {
+    if (age < 0 || age > 120) {
+        throw new Error('Age must be between 0 and 120, got ' + age);
+    }
+    if (children < 0) {
+        throw new Error('Children count cannot be negative');
+    }
+    if (income < 0) {
+        throw new Error('Income cannot be negative');
+    }
+    let rate = 0.30;
+    if (age >= 65) rate -= 0.05;
+    rate -= children * 0.01;
+    return income * rate;
+}`,
+  'nextjs': `function taxCalculation(
+    username: string,
+    age: number,
+    children: number,
+    income: number
+): number {
+    if (age < 0 || age > 120) {
+        throw new Error('Age must be between 0 and 120, got ' + age);
+    }
+    if (children < 0) {
+        throw new Error('Children count cannot be negative');
+    }
+    if (income < 0) {
+        throw new Error('Income cannot be negative');
+    }
+    let rate = 0.30;
+    if (age >= 65) rate -= 0.05;
+    rate -= children * 0.01;
+    return income * rate;
+}`,
+  'java': `public double taxCalculation(
+    String username, int age, int children, double income
+) {
+    if (age < 0 || age > 120)
+        throw new IllegalArgumentException("Age must be between 0 and 120, got " + age);
+    if (children < 0)
+        throw new IllegalArgumentException("Children count cannot be negative");
+    if (income < 0)
+        throw new IllegalArgumentException("Income cannot be negative");
+
+    double rate = 0.30;
+    if (age >= 65) rate -= 0.05;
+    rate -= children * 0.01;
+    return income * rate;
+}`,
+  'rust': `// Note: u32 is always >= 0, so children needs no validation
+fn tax_calculation(
+    _username: &str,
+    age: u32,
+    children: u32,
+    income: f64,
+) -> Result<f64, String> {
+    if age > 120 {
+        return Err(format!("Age must be <= 120, got {}", age));
+    }
+    if income < 0.0 {
+        return Err(format!("Income cannot be negative, got {}", income));
+    }
+    let mut rate = 0.30_f64;
+    if age >= 65 { rate -= 0.05; }
+    rate -= children as f64 * 0.01;
+    Ok(income * rate)
+}`,
+};
+
+// ── STEP 3: Extract Assertions ──
+const step3 = {
+  'php-symfony': `function assert_valid_age(int $age): void {
+    if ($age < 0 || $age > 120) {
+        throw new \\InvalidArgumentException('Age must be between 0 and 120');
+    }
+}
+
+function assert_valid_children(int $children): void {
+    if ($children < 0) {
+        throw new \\InvalidArgumentException('Children count cannot be negative');
+    }
+}
+
+function assert_valid_income(float $income): void {
+    if ($income < 0) {
+        throw new \\InvalidArgumentException('Income cannot be negative');
+    }
+}
+
+function tax_calculation(
+    string $username,
+    int $age,
+    int $children,
+    float $income
+): float {
+    assert_valid_age($age);
+    assert_valid_children($children);
+    assert_valid_income($income);
+
+    $rate = 0.30;
+    if ($age >= 65) {
+        $rate -= 0.05;
+    }
+    $rate -= $children * 0.01;
+    return $income * $rate;
+}`,
+  'php-laravel': `function assert_valid_age(int $age): void {
+    if ($age < 0 || $age > 120) {
+        throw new \\InvalidArgumentException('Age must be between 0 and 120');
+    }
+}
+
+function assert_valid_children(int $children): void {
+    if ($children < 0) {
+        throw new \\InvalidArgumentException('Children count cannot be negative');
+    }
+}
+
+function assert_valid_income(float $income): void {
+    if ($income < 0) {
+        throw new \\InvalidArgumentException('Income cannot be negative');
+    }
+}
+
+function tax_calculation(
+    string $username,
+    int $age,
+    int $children,
+    float $income
+): float {
+    assert_valid_age($age);
+    assert_valid_children($children);
+    assert_valid_income($income);
+
+    $rate = 0.30;
+    if ($age >= 65) {
+        $rate -= 0.05;
+    }
+    $rate -= $children * 0.01;
+    return $income * $rate;
+}`,
+  'typescript': `function assertValidAge(age: number): void {
+    if (age < 0 || age > 120)
+        throw new Error('Age must be between 0 and 120, got ' + age);
+}
+function assertValidChildren(children: number): void {
+    if (children < 0)
+        throw new Error('Children count cannot be negative');
+}
+function assertValidIncome(income: number): void {
+    if (income < 0)
+        throw new Error('Income cannot be negative');
+}
+
+function taxCalculation(
+    username: string, age: number, children: number, income: number
+): number {
+    assertValidAge(age);
+    assertValidChildren(children);
+    assertValidIncome(income);
+    let rate = 0.30;
+    if (age >= 65) rate -= 0.05;
+    rate -= children * 0.01;
+    return income * rate;
+}`,
+  'nextjs': `function assertValidAge(age: number): void {
+    if (age < 0 || age > 120)
+        throw new Error('Age must be between 0 and 120, got ' + age);
+}
+function assertValidChildren(children: number): void {
+    if (children < 0)
+        throw new Error('Children count cannot be negative');
+}
+function assertValidIncome(income: number): void {
+    if (income < 0)
+        throw new Error('Income cannot be negative');
+}
+
+function taxCalculation(
+    username: string, age: number, children: number, income: number
+): number {
+    assertValidAge(age);
+    assertValidChildren(children);
+    assertValidIncome(income);
+    let rate = 0.30;
+    if (age >= 65) rate -= 0.05;
+    rate -= children * 0.01;
+    return income * rate;
+}`,
+  'java': `private static void assertValidAge(int age) {
+    if (age < 0 || age > 120)
+        throw new IllegalArgumentException("Age must be between 0 and 120, got " + age);
+}
+private static void assertValidIncome(double income) {
+    if (income < 0)
+        throw new IllegalArgumentException("Income cannot be negative");
+}
+
+public double taxCalculation(
+    String username, int age, int children, double income
+) {
+    assertValidAge(age);
+    assertValidIncome(income);
+    double rate = 0.30;
+    if (age >= 65) rate -= 0.05;
+    rate -= children * 0.01;
+    return income * rate;
+}`,
+  'rust': `fn assert_valid_age(age: u32) -> Result<(), String> {
+    if age > 120 { Err(format!("Age must be <= 120, got {}", age)) }
+    else { Ok(()) }
+}
+fn assert_valid_income(income: f64) -> Result<(), String> {
+    if income < 0.0 { Err("Income cannot be negative".into()) }
+    else { Ok(()) }
+}
+
+fn tax_calculation(
+    _username: &str, age: u32, children: u32, income: f64
+) -> Result<f64, String> {
+    assert_valid_age(age)?;
+    assert_valid_income(income)?;
+    let mut rate = 0.30_f64;
+    if age >= 65 { rate -= 0.05; }
+    rate -= children as f64 * 0.01;
+    Ok(income * rate)
+}`,
+};
+
+// ── STEP 4: Value Objects ──
+const step4 = {
+  'php-symfony': `final class Age
+{
+    private function __construct(private readonly int $value) {}
+
+    public static function fromInt(int $value): self
+    {
+        if ($value < 0 || $value > 120) {
+            throw new \\InvalidArgumentException(
+                "Age must be between 0 and 120, got {$value}"
+            );
+        }
+        return new self($value);
+    }
+
+    public function isSenior(): bool { return $this->value >= 65; }
+    public function getValue(): int  { return $this->value; }
+}
+
+final class ChildCount
+{
+    private function __construct(private readonly int $value) {}
+
+    public static function fromInt(int $value): self
+    {
+        if ($value < 0) {
+            throw new \\InvalidArgumentException("Child count cannot be negative");
+        }
+        return new self($value);
+    }
+    public function getValue(): int { return $this->value; }
+}
+
+final class Income
+{
+    private function __construct(private readonly float $value) {}
+
+    public static function fromFloat(float $value): self
+    {
+        if ($value < 0) {
+            throw new \\InvalidArgumentException("Income cannot be negative");
+        }
+        return new self($value);
+    }
+    public function getValue(): float { return $this->value; }
+}
+
+final class UserName
+{
+    private function __construct(private readonly string $value) {}
+
+    public static function fromString(string $value): self
+    {
+        if (trim($value) === '') {
+            throw new \\InvalidArgumentException('Username cannot be empty');
+        }
+        return new self(trim($value));
+    }
+    public function getValue(): string { return $this->value; }
+}
+
+function tax_calculation(
+    UserName $username,
+    Age $age,
+    ChildCount $children,
+    Income $income
+): float {
+    $rate = 0.30;
+    if ($age->isSenior()) {
+        $rate -= 0.05;
+    }
+    $rate -= $children->getValue() * 0.01;
+    return $income->getValue() * $rate;
+}`,
+  'php-laravel': `final class Age
+{
+    private function __construct(private readonly int $value) {}
+
+    public static function fromInt(int $value): self
+    {
+        if ($value < 0 || $value > 120) {
+            throw new \\InvalidArgumentException(
+                "Age must be between 0 and 120, got {$value}"
+            );
+        }
+        return new self($value);
+    }
+
+    public function isSenior(): bool { return $this->value >= 65; }
+    public function getValue(): int  { return $this->value; }
+}
+
+final class ChildCount
+{
+    private function __construct(private readonly int $value) {}
+
+    public static function fromInt(int $value): self
+    {
+        if ($value < 0) {
+            throw new \\InvalidArgumentException("Child count cannot be negative");
+        }
+        return new self($value);
+    }
+    public function getValue(): int { return $this->value; }
+}
+
+final class Income
+{
+    private function __construct(private readonly float $value) {}
+
+    public static function fromFloat(float $value): self
+    {
+        if ($value < 0) {
+            throw new \\InvalidArgumentException("Income cannot be negative");
+        }
+        return new self($value);
+    }
+    public function getValue(): float { return $this->value; }
+}
+
+final class UserName
+{
+    private function __construct(private readonly string $value) {}
+
+    public static function fromString(string $value): self
+    {
+        if (trim($value) === '') {
+            throw new \\InvalidArgumentException('Username cannot be empty');
+        }
+        return new self(trim($value));
+    }
+    public function getValue(): string { return $this->value; }
+}
+
+// Value objects are framework-agnostic
+function tax_calculation(
+    UserName $username,
+    Age $age,
+    ChildCount $children,
+    Income $income
+): float {
+    $rate = 0.30;
+    if ($age->isSenior()) {
+        $rate -= 0.05;
+    }
+    $rate -= $children->getValue() * 0.01;
+    return $income->getValue() * $rate;
+}`,
+  'typescript': `class Age {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): Age {
+        if (value < 0 || value > 120)
+            throw new Error('Age must be between 0 and 120, got ' + value);
+        return new Age(value);
+    }
+    isSenior(): boolean { return this.value >= 65; }
+    getValue(): number  { return this.value; }
+}
+
+class ChildCount {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): ChildCount {
+        if (value < 0) throw new Error('Child count cannot be negative');
+        return new ChildCount(Math.floor(value));
+    }
+    getValue(): number { return this.value; }
+}
+
+class Income {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): Income {
+        if (value < 0) throw new Error('Income cannot be negative');
+        return new Income(value);
+    }
+    getValue(): number { return this.value; }
+}
+
+class UserName {
+    private constructor(private readonly value: string) {}
+    static fromString(value: string): UserName {
+        if (!value.trim()) throw new Error('Username cannot be empty');
+        return new UserName(value.trim());
+    }
+    getValue(): string { return this.value; }
+}
+
+function taxCalculation(
+    username: UserName, age: Age, children: ChildCount, income: Income
+): number {
+    let rate = 0.30;
+    if (age.isSenior()) rate -= 0.05;
+    rate -= children.getValue() * 0.01;
+    return income.getValue() * rate;
+}`,
+  'nextjs': `class Age {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): Age {
+        if (value < 0 || value > 120)
+            throw new Error('Age must be between 0 and 120, got ' + value);
+        return new Age(value);
+    }
+    isSenior(): boolean { return this.value >= 65; }
+    getValue(): number  { return this.value; }
+}
+
+class ChildCount {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): ChildCount {
+        if (value < 0) throw new Error('Child count cannot be negative');
+        return new ChildCount(Math.floor(value));
+    }
+    getValue(): number { return this.value; }
+}
+
+class Income {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): Income {
+        if (value < 0) throw new Error('Income cannot be negative');
+        return new Income(value);
+    }
+    getValue(): number { return this.value; }
+}
+
+class UserName {
+    private constructor(private readonly value: string) {}
+    static fromString(value: string): UserName {
+        if (!value.trim()) throw new Error('Username cannot be empty');
+        return new UserName(value.trim());
+    }
+    getValue(): string { return this.value; }
+}
+
+// Value objects are framework-agnostic
+function taxCalculation(
+    username: UserName, age: Age, children: ChildCount, income: Income
+): number {
+    let rate = 0.30;
+    if (age.isSenior()) rate -= 0.05;
+    rate -= children.getValue() * 0.01;
+    return income.getValue() * rate;
+}`,
+  'java': `public final class Age {
+    private final int value;
+    private Age(int value) { this.value = value; }
+
+    public static Age fromInt(int value) {
+        if (value < 0 || value > 120)
+            throw new IllegalArgumentException("Age must be between 0 and 120, got " + value);
+        return new Age(value);
+    }
+    public boolean isSenior() { return value >= 65; }
+    public int getValue()     { return value; }
+}
+
+public final class ChildCount {
+    private final int value;
+    private ChildCount(int value) { this.value = value; }
+
+    public static ChildCount fromInt(int value) {
+        if (value < 0)
+            throw new IllegalArgumentException("Child count cannot be negative");
+        return new ChildCount(value);
+    }
+    public int getValue() { return value; }
+}
+
+public final class Income {
+    private final double value;
+    private Income(double value) { this.value = value; }
+
+    public static Income fromDouble(double value) {
+        if (value < 0)
+            throw new IllegalArgumentException("Income cannot be negative");
+        return new Income(value);
+    }
+    public double getValue() { return value; }
+}
+
+public double taxCalculation(
+    UserName username, Age age, ChildCount children, Income income
+) {
+    double rate = 0.30;
+    if (age.isSenior()) rate -= 0.05;
+    rate -= children.getValue() * 0.01;
+    return income.getValue() * rate;
+}`,
+  'rust': `pub struct Age(u32);
+
+impl Age {
+    pub fn from_u32(value: u32) -> Result<Self, String> {
+        if value > 120 {
+            return Err(format!("Age must be <= 120, got {}", value));
+        }
+        Ok(Age(value))
+    }
+    pub fn is_senior(&self) -> bool { self.0 >= 65 }
+    pub fn value(&self) -> u32 { self.0 }
+}
+
+// u32 is always >= 0: the type system eliminates this validation entirely
+pub struct ChildCount(u32);
+
+impl ChildCount {
+    pub fn from_u32(value: u32) -> Self { ChildCount(value) }
+    pub fn value(&self) -> u32 { self.0 }
+}
+
+pub struct Income(f64);
+
+impl Income {
+    pub fn from_f64(value: f64) -> Result<Self, String> {
+        if value < 0.0 {
+            return Err(format!("Income cannot be negative, got {}", value));
+        }
+        Ok(Income(value))
+    }
+    pub fn value(&self) -> f64 { self.0 }
+}
+
+pub fn tax_calculation(age: &Age, children: &ChildCount, income: &Income) -> f64 {
+    let mut rate = 0.30_f64;
+    if age.is_senior() { rate -= 0.05; }
+    rate -= children.value() as f64 * 0.01;
+    income.value() * rate
+}`,
+};
+
+// ── NAIVE CONTROLLER ──
+const naiveController = {
+  'php-symfony': `#[Route('/calculate-tax', methods: ['GET'])]
+public function calculateTax(Request $request): JsonResponse
+{
+    $age      = (int)   $request->query->get('age');
+    $children = (int)   $request->query->get('children');
+    $income   = (float) $request->query->get('income');
+
+    // all validation happens here again...
+    $result = tax_calculation($age, $children, $income);
+
+    return new JsonResponse(['tax' => $result]);
+}`,
+  'php-laravel': `public function calculateTax(Request $request): JsonResponse
+{
+    $age      = (int)   $request->query('age');
+    $children = (int)   $request->query('children');
+    $income   = (float) $request->query('income');
+
+    // all validation happens here again...
+    $result = tax_calculation($age, $children, $income);
+
+    return response()->json(['tax' => $result]);
+}`,
+  'typescript': `app.get('/calculate-tax', (req: Request, res: Response) => {
+    const age      = parseInt(req.query.age as string);
+    const children = parseInt(req.query.children as string);
+    const income   = parseFloat(req.query.income as string);
+
+    // all validation happens here again...
+    const result = taxCalculation(age, children, income);
+    res.json({ tax: result });
+});`,
+  'nextjs': `// app/api/calculate-tax/route.ts
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const age      = parseInt(searchParams.get('age')      ?? '0');
+    const children = parseInt(searchParams.get('children') ?? '0');
+    const income   = parseFloat(searchParams.get('income') ?? '0');
+
+    // all validation happens here again...
+    const result = taxCalculation(age, children, income);
+    return Response.json({ tax: result });
+}`,
+  'java': `@GetMapping("/calculate-tax")
+public ResponseEntity<Map<String, Double>> calculateTax(
+    @RequestParam int age,
+    @RequestParam int children,
+    @RequestParam double income
+) {
+    // all validation happens here again...
+    double result = taxCalculation(age, children, income);
+    return ResponseEntity.ok(Map.of("tax", result));
+}`,
+  'rust': `#[derive(Deserialize)]
+struct TaxParams { age: u32, children: u32, income: f64 }
+
+async fn calculate_tax(
+    Query(params): Query<TaxParams>,
+) -> impl IntoResponse {
+    // all validation happens here again...
+    let result = tax_calculation(params.age, params.children, params.income);
+    Json(json!({ "tax": result }))
+}`,
+};
+
+// ── TYPED CONTROLLER ──
+const typedController = {
+  'php-symfony': `// Register once; Symfony Serializer handles deserialization automatically
+final class AgeNormalizer implements DenormalizerInterface
+{
+    public function denormalize(mixed $data, string $type, ...): Age
+    {
+        return Age::fromInt((int) $data); // throws -> HTTP 422 automatically
+    }
+    public function supportsDenormalization(mixed $data, string $type, ...): bool
+    {
+        return $type === Age::class;
+    }
+}
+
+// Controller: no defensive code
+#[Route('/calculate-tax', methods: ['GET'])]
+public function calculateTax(
+    #[MapQueryParameter] Age $age,
+    #[MapQueryParameter] ChildCount $children,
+    #[MapQueryParameter] Income $income
+): JsonResponse {
+    $result = tax_calculation($age, $children, $income);
+    return new JsonResponse(['tax' => $result]);
+}`,
+  'php-laravel': `// Form Request: validation and domain casting in one place
+final class CalculateTaxRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'age'      => ['required', 'integer', 'min:0', 'max:120'],
+            'children' => ['required', 'integer', 'min:0'],
+            'income'   => ['required', 'numeric',  'min:0'],
+        ];
+    }
+
+    public function age(): Age         { return Age::fromInt($this->integer('age')); }
+    public function children(): ChildCount { return ChildCount::fromInt($this->integer('children')); }
+    public function income(): Income   { return Income::fromFloat($this->float('income')); }
+}
+
+// Controller: no defensive code
+public function calculateTax(CalculateTaxRequest $request): JsonResponse
+{
+    $result = tax_calculation($request->age(), $request->children(), $request->income());
+    return response()->json(['tax' => $result]);
+}`,
+  'typescript': `import { z } from 'zod';
+
+// Declare domain rules once
+const TaxSchema = z.object({
+    age:      z.coerce.number().int().min(0).max(120),
+    children: z.coerce.number().int().min(0),
+    income:   z.coerce.number().min(0),
+});
+
+app.get('/calculate-tax', (req: Request, res: Response) => {
+    const parsed = TaxSchema.safeParse(req.query);
+    if (!parsed.success) {
+        return res.status(422).json(parsed.error.flatten());
+    }
+    const { age, children, income } = parsed.data;
+    const result = taxCalculation(
+        Age.fromNumber(age),
+        ChildCount.fromNumber(children),
+        Income.fromNumber(income)
+    );
+    res.json({ tax: result });
+});`,
+  'nextjs': `// app/api/calculate-tax/route.ts
+import { z } from 'zod';
+
+const TaxSchema = z.object({
+    age:      z.coerce.number().int().min(0).max(120),
+    children: z.coerce.number().int().min(0),
+    income:   z.coerce.number().min(0),
+});
+
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const parsed = TaxSchema.safeParse(Object.fromEntries(searchParams));
+    if (!parsed.success) {
+        return Response.json(parsed.error.flatten(), { status: 422 });
+    }
+    const { age, children, income } = parsed.data;
+    const result = taxCalculation(
+        Age.fromNumber(age),
+        ChildCount.fromNumber(children),
+        Income.fromNumber(income)
+    );
+    return Response.json({ tax: result });
+}`,
+  'java': `@RestController
+@Validated
+public class TaxController {
+
+    @GetMapping("/calculate-tax")
+    public ResponseEntity<Map<String, Double>> calculateTax(
+        @RequestParam @Min(0) @Max(120) int age,
+        @RequestParam @Min(0) int children,
+        @RequestParam @DecimalMin("0.0") double income
+    ) {
+        Age taxAge             = Age.fromInt(age);
+        ChildCount taxChildren = ChildCount.fromInt(children);
+        Income taxIncome       = Income.fromDouble(income);
+
+        double result = taxCalculation(taxAge, taxChildren, taxIncome);
+        return ResponseEntity.ok(Map.of("tax", result));
+    }
+    // Spring returns HTTP 400 automatically on constraint violation
+}`,
+  'rust': `#[derive(Deserialize)]
+struct TaxParams { age: u32, children: u32, income: f64 }
+
+async fn calculate_tax(
+    Query(params): Query<TaxParams>,
+) -> Result<Json<Value>, (StatusCode, String)> {
+    let age     = Age::from_u32(params.age)
+        .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e))?;
+    let children = ChildCount::from_u32(params.children);
+    let income  = Income::from_f64(params.income)
+        .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e))?;
+
+    let result = tax_calculation(&age, &children, &income);
+    Ok(Json(json!({ "tax": result })))
+}`,
+};
+
+// ── STATE MACHINE ──
+const stateMachine = {
+  'php-symfony': `final class AnonymousRequest
+{
+    public function __construct(private readonly string $rawUsername) {}
+
+    public function authenticate(SessionService $session): AuthenticatedRequest
+    {
+        $user = $session->findActiveUser($this->rawUsername);
+        if ($user === null) {
+            throw new UnauthorizedException('User is not authenticated');
+        }
+        return new AuthenticatedRequest($user);
+    }
+}
+
+final class AuthenticatedRequest
+{
+    public function __construct(public readonly AuthenticatedUser $user) {}
+
+    public function withTaxParameters(
+        int $age, int $children, float $income
+    ): ValidatedTaxRequest {
+        return new ValidatedTaxRequest(
+            $this->user,
+            Age::fromInt($age),
+            ChildCount::fromInt($children),
+            Income::fromFloat($income)
+        );
+    }
+}
+
+final class ValidatedTaxRequest
+{
+    public function __construct(
+        public readonly AuthenticatedUser $user,
+        public readonly Age $age,
+        public readonly ChildCount $children,
+        public readonly Income $income
+    ) {}
+}
+
+function tax_calculation(ValidatedTaxRequest $request): float
+{
+    $rate = 0.30;
+    if ($request->age->isSenior()) { $rate -= 0.05; }
+    $rate -= $request->children->getValue() * 0.01;
+    return $request->income->getValue() * $rate;
+}`,
+  'php-laravel': `final class AnonymousRequest
+{
+    public function __construct(private readonly string $rawUsername) {}
+
+    public function authenticate(SessionService $session): AuthenticatedRequest
+    {
+        $user = $session->findActiveUser($this->rawUsername);
+        if ($user === null) {
+            throw new UnauthorizedException('User is not authenticated');
+        }
+        return new AuthenticatedRequest($user);
+    }
+}
+
+final class AuthenticatedRequest
+{
+    public function __construct(public readonly AuthenticatedUser $user) {}
+
+    public function withTaxParameters(
+        int $age, int $children, float $income
+    ): ValidatedTaxRequest {
+        return new ValidatedTaxRequest(
+            $this->user,
+            Age::fromInt($age),
+            ChildCount::fromInt($children),
+            Income::fromFloat($income)
+        );
+    }
+}
+
+final class ValidatedTaxRequest
+{
+    public function __construct(
+        public readonly AuthenticatedUser $user,
+        public readonly Age $age,
+        public readonly ChildCount $children,
+        public readonly Income $income
+    ) {}
+}
+
+// Domain state machine classes are framework-agnostic
+function tax_calculation(ValidatedTaxRequest $request): float
+{
+    $rate = 0.30;
+    if ($request->age->isSenior()) { $rate -= 0.05; }
+    $rate -= $request->children->getValue() * 0.01;
+    return $request->income->getValue() * $rate;
+}`,
+  'typescript': `class AnonymousRequest {
+    constructor(private readonly rawUsername: string) {}
+
+    authenticate(session: SessionService): AuthenticatedRequest {
+        const user = session.findActiveUser(this.rawUsername);
+        if (!user) throw new UnauthorizedError('User is not authenticated');
+        return new AuthenticatedRequest(user);
+    }
+}
+
+class AuthenticatedRequest {
+    constructor(public readonly user: AuthenticatedUser) {}
+
+    withTaxParameters(age: number, children: number, income: number): ValidatedTaxRequest {
+        return new ValidatedTaxRequest(
+            this.user,
+            Age.fromNumber(age),
+            ChildCount.fromNumber(children),
+            Income.fromNumber(income)
+        );
+    }
+}
+
+class ValidatedTaxRequest {
+    constructor(
+        public readonly user: AuthenticatedUser,
+        public readonly age: Age,
+        public readonly children: ChildCount,
+        public readonly income: Income,
+    ) {}
+}
+
+function taxCalculation(req: ValidatedTaxRequest): number {
+    let rate = 0.30;
+    if (req.age.isSenior()) rate -= 0.05;
+    rate -= req.children.getValue() * 0.01;
+    return req.income.getValue() * rate;
+}`,
+  'nextjs': `class AnonymousRequest {
+    constructor(private readonly rawUsername: string) {}
+
+    authenticate(session: SessionService): AuthenticatedRequest {
+        const user = session.findActiveUser(this.rawUsername);
+        if (!user) throw new UnauthorizedError('User is not authenticated');
+        return new AuthenticatedRequest(user);
+    }
+}
+
+class AuthenticatedRequest {
+    constructor(public readonly user: AuthenticatedUser) {}
+
+    withTaxParameters(age: number, children: number, income: number): ValidatedTaxRequest {
+        return new ValidatedTaxRequest(
+            this.user,
+            Age.fromNumber(age),
+            ChildCount.fromNumber(children),
+            Income.fromNumber(income)
+        );
+    }
+}
+
+class ValidatedTaxRequest {
+    constructor(
+        public readonly user: AuthenticatedUser,
+        public readonly age: Age,
+        public readonly children: ChildCount,
+        public readonly income: Income,
+    ) {}
+}
+
+// Domain state machine classes are framework-agnostic
+function taxCalculation(req: ValidatedTaxRequest): number {
+    let rate = 0.30;
+    if (req.age.isSenior()) rate -= 0.05;
+    rate -= req.children.getValue() * 0.01;
+    return req.income.getValue() * rate;
+}`,
+  'java': `public final class AnonymousRequest {
+    private final String rawUsername;
+    public AnonymousRequest(String rawUsername) { this.rawUsername = rawUsername; }
+
+    public AuthenticatedRequest authenticate(SessionService session) {
+        AuthenticatedUser user = session.findActiveUser(rawUsername);
+        if (user == null) throw new UnauthorizedException("User is not authenticated");
+        return new AuthenticatedRequest(user);
+    }
+}
+
+public final class AuthenticatedRequest {
+    public final AuthenticatedUser user;
+    public AuthenticatedRequest(AuthenticatedUser user) { this.user = user; }
+
+    public ValidatedTaxRequest withTaxParameters(int age, int children, double income) {
+        return new ValidatedTaxRequest(
+            user, Age.fromInt(age), ChildCount.fromInt(children), Income.fromDouble(income)
+        );
+    }
+}
+
+public final class ValidatedTaxRequest {
+    public final AuthenticatedUser user;
+    public final Age age;
+    public final ChildCount children;
+    public final Income income;
+
+    public ValidatedTaxRequest(AuthenticatedUser user, Age age, ChildCount children, Income income) {
+        this.user = user; this.age = age; this.children = children; this.income = income;
+    }
+}
+
+public double taxCalculation(ValidatedTaxRequest req) {
+    double rate = 0.30;
+    if (req.age.isSenior()) rate -= 0.05;
+    rate -= req.children.getValue() * 0.01;
+    return req.income.getValue() * rate;
+}`,
+  'rust': `pub struct AnonymousRequest { pub raw_username: String }
+
+impl AnonymousRequest {
+    pub fn authenticate(self, session: &SessionService)
+        -> Result<AuthenticatedRequest, AuthError>
+    {
+        let user = session.find_active_user(&self.raw_username)
+            .ok_or(AuthError::NotAuthenticated)?;
+        Ok(AuthenticatedRequest { user })
+    }
+}
+
+pub struct AuthenticatedRequest { pub user: AuthenticatedUser }
+
+impl AuthenticatedRequest {
+    pub fn with_tax_parameters(
+        self, age: u32, children: u32, income: f64
+    ) -> Result<ValidatedTaxRequest, String> {
+        Ok(ValidatedTaxRequest {
+            user:     self.user,
+            age:      Age::from_u32(age)?,
+            children: ChildCount::from_u32(children),
+            income:   Income::from_f64(income)?,
+        })
+    }
+}
+
+pub struct ValidatedTaxRequest {
+    pub user:     AuthenticatedUser,
+    pub age:      Age,
+    pub children: ChildCount,
+    pub income:   Income,
+}
+
+pub fn tax_calculation(req: &ValidatedTaxRequest) -> f64 {
+    let mut rate = 0.30_f64;
+    if req.age.is_senior() { rate -= 0.05; }
+    rate -= req.children.value() as f64 * 0.01;
+    req.income.value() * rate
+}`,
+};
+
+// ── YAML CONTENT ──
+const yamlBefore = `/calculate-tax:
+  get:
+    parameters:
+      - name: age
+        in: query
+        schema:
+          type: integer
+      - name: children
+        in: query
+        schema:
+          type: integer
+      - name: income
+        in: query
+        schema:
+          type: number`;
+
+const yamlAfter = `components:
+  schemas:
+    Age:
+      type: integer
+      minimum: 0
+      maximum: 120
+      description: "Age of the taxpayer in years. Seniors (65+) qualify for a reduced rate."
+
+    ChildCount:
+      type: integer
+      minimum: 0
+      description: "Number of dependent children. Each child reduces the tax rate by 1%."
+
+    Income:
+      type: number
+      format: float
+      minimum: 0
+      description: "Annual gross income in the local currency."
+
+    TaxResult:
+      type: object
+      required: [tax, rate]
+      properties:
+        tax:
+          type: number
+          format: float
+        rate:
+          type: number
+          format: float
+
+/calculate-tax:
+  get:
+    parameters:
+      - name: age
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/Age'
+      - name: children
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/ChildCount'
+      - name: income
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/Income'
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaxResult'
+      '422':
+        description: "One or more parameters failed domain validation."`;
+
+const yamlFinal = `openapi: 3.1.0
+info:
+  title: Tax Calculation API
+  version: 1.0.0
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Age:
+      type: integer
+      minimum: 0
+      maximum: 120
+      description: "Age of the taxpayer in years. Taxpayers aged 65 or above qualify for a reduced rate."
+
+    ChildCount:
+      type: integer
+      minimum: 0
+      description: "Number of dependent children. Each child reduces the applicable tax rate by 1%."
+
+    Income:
+      type: number
+      format: float
+      minimum: 0
+      description: "Annual gross income in the local currency."
+
+    TaxResult:
+      type: object
+      required: [tax, rate]
+      properties:
+        tax:
+          type: number
+          format: float
+          description: "Calculated tax amount."
+        rate:
+          type: number
+          format: float
+          description: "Effective tax rate applied."
+
+    ValidationError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+paths:
+  /calculate-tax:
+    get:
+      summary: Calculate tax for the authenticated user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: age
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Age'
+        - name: children
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/ChildCount'
+        - name: income
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/Income'
+      responses:
+        '200':
+          description: Tax calculated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxResult'
+        '401':
+          description: Missing or invalid authentication token.
+        '422':
+          description: One or more parameters failed domain validation.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ValidationError'`;
+
+// ══════════════════════════════════════════════════════════════════
+// BLOCK REGISTRY
+// ══════════════════════════════════════════════════════════════════
+const BLOCKS = [
+  { id: 'block-step1',      data: step1         },
+  { id: 'block-step2',      data: step2         },
+  { id: 'block-step3',      data: step3         },
+  { id: 'block-step4',      data: step4         },
+  { id: 'block-naive',      data: naiveController },
+  { id: 'block-typed',      data: typedController },
+  { id: 'block-statemachine', data: stateMachine },
+];
+
+// ══════════════════════════════════════════════════════════════════
+// BUILD TAB BLOCKS
+// ══════════════════════════════════════════════════════════════════
+function buildBlock(blockId, codeData) {
+  const wrap = document.getElementById(blockId);
+  if (!wrap) return;
+
+  const tabBar   = wrap.querySelector('.tab-bar');
+  const panesWrap = wrap.querySelector('.tab-panes');
+
+  TABS.forEach(tab => {
+    // Tab button
+    const btn = document.createElement('button');
+    btn.className  = 'tab-btn' + (tab.id === activeTab ? ' active' : '');
+    btn.textContent = tab.label;
+    btn.dataset.lang = tab.id;
+    btn.addEventListener('click', () => switchAllTabs(tab.id));
+    tabBar.appendChild(btn);
+
+    // Pane
+    const pane = document.createElement('div');
+    pane.className  = 'tab-pane' + (tab.id === activeTab ? ' active' : '');
+    pane.dataset.lang = tab.id;
+
+    const pre  = document.createElement('pre');
+    const code = document.createElement('code');
+    code.className = LANG_MAP[tab.id] || 'language-plaintext';
+    code.textContent = codeData[tab.id] || '// Not available for this language';
+    pre.appendChild(code);
+    pane.appendChild(pre);
+    panesWrap.appendChild(pane);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// GLOBAL TAB SWITCH
+// ══════════════════════════════════════════════════════════════════
+function switchAllTabs(langId) {
+  activeTab = langId;
+
+  // Update all tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === langId);
+  });
+
+  // Update all panes
+  document.querySelectorAll('.tab-pane').forEach(pane => {
+    const isActive = pane.dataset.lang === langId;
+    pane.classList.toggle('active', isActive);
+
+    // Re-highlight when becoming visible
+    if (isActive) {
+      const codeEl = pane.querySelector('code');
+      if (codeEl && window.hljs && !codeEl.dataset.highlighted) {
+        hljs.highlightElement(codeEl);
+        codeEl.dataset.highlighted = 'yes';
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INITIALISE PLAIN YAML BLOCKS
+// ══════════════════════════════════════════════════════════════════
+function initYamlBlock(blockId, content) {
+  const block = document.getElementById(blockId);
+  if (!block) return;
+  const code = block.querySelector('code');
+  if (code) code.textContent = content;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Build all tab blocks
+  BLOCKS.forEach(b => buildBlock(b.id, b.data));
+
+  // Fill YAML blocks
+  initYamlBlock('yaml-before', yamlBefore);
+  initYamlBlock('yaml-after',  yamlAfter);
+  initYamlBlock('yaml-final',  yamlFinal);
+
+  // Highlight.js: highlight all visible code blocks
+  if (window.hljs) {
+    document.querySelectorAll('pre code').forEach(el => {
+      const pane = el.closest('.tab-pane');
+      if (!pane || pane.classList.contains('active')) {
+        hljs.highlightElement(el);
+        el.dataset.highlighted = 'yes';
+      }
+    });
+  }
+
+  // Mermaid
+  if (window.mermaid) {
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  }
+});
+</script>
+</body>
+</html>
