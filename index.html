@@ -1743,14 +1743,9 @@ final class AuthenticatedRequest
     public function __construct(public readonly AuthenticatedUser $user) {}
 
     public function withTaxParameters(
-        int $age, int $children, float $income
+        Age $age, ChildCount $children, Income $income
     ): ValidatedTaxRequest {
-        return new ValidatedTaxRequest(
-            $this->user,
-            Age::fromInt($age),
-            ChildCount::fromInt($children),
-            Income::fromFloat($income)
-        );
+        return new ValidatedTaxRequest($this->user, $age, $children, $income);
     }
 }
 
@@ -1784,13 +1779,8 @@ function tax_calculation(ValidatedTaxRequest $request): float
 class AuthenticatedRequest {
     constructor(public readonly user: AuthenticatedUser) {}
 
-    withTaxParameters(age: number, children: number, income: number): ValidatedTaxRequest {
-        return new ValidatedTaxRequest(
-            this.user,
-            Age.fromNumber(age),
-            ChildCount.fromNumber(children),
-            Income.fromNumber(income)
-        );
+    withTaxParameters(age: Age, children: ChildCount, income: Income): ValidatedTaxRequest {
+        return new ValidatedTaxRequest(this.user, age, children, income);
     }
 }
 
@@ -1824,10 +1814,8 @@ public final class AuthenticatedRequest {
     public final AuthenticatedUser user;
     public AuthenticatedRequest(AuthenticatedUser user) { this.user = user; }
 
-    public ValidatedTaxRequest withTaxParameters(int age, int children, double income) {
-        return new ValidatedTaxRequest(
-            user, Age.fromInt(age), ChildCount.fromInt(children), Income.fromDouble(income)
-        );
+    public ValidatedTaxRequest withTaxParameters(Age age, ChildCount children, Income income) {
+        return new ValidatedTaxRequest(user, age, children, income);
     }
 }
 
@@ -1864,14 +1852,9 @@ pub struct AuthenticatedRequest { pub user: AuthenticatedUser }
 
 impl AuthenticatedRequest {
     pub fn with_tax_parameters(
-        self, age: u32, children: u32, income: f64
-    ) -> Result<ValidatedTaxRequest, String> {
-        Ok(ValidatedTaxRequest {
-            user:     self.user,
-            age:      Age::from_u32(age)?,
-            children: ChildCount::from_u32(children),
-            income:   Income::from_f64(income)?,
-        })
+        self, age: Age, children: ChildCount, income: Income
+    ) -> ValidatedTaxRequest {
+        ValidatedTaxRequest { user: self.user, age, children, income }
     }
 }
 
@@ -1905,13 +1888,8 @@ class AnonymousRequest:
 class AuthenticatedRequest:
     user: AuthenticatedUser
 
-    def with_tax_parameters(self, age: int, children: int, income: float) -> 'ValidatedTaxRequest':
-        return ValidatedTaxRequest(
-            user=self.user,
-            age=Age(age),
-            children=ChildCount(children),
-            income=Income(income),
-        )
+    def with_tax_parameters(self, age: Age, children: ChildCount, income: Income) -> 'ValidatedTaxRequest':
+        return ValidatedTaxRequest(user=self.user, age=age, children=children, income=income)
 
 @dataclass(frozen=True)
 class ValidatedTaxRequest:
@@ -1934,13 +1912,8 @@ def tax_calculation(req: ValidatedTaxRequest) -> float:
 }
 
 case class AuthenticatedRequest(user: AuthenticatedUser) {
-  def withTaxParameters(age: Int, children: Int, income: Double): Try[ValidatedTaxRequest] =
-    Try(ValidatedTaxRequest(
-      user     = user,
-      age      = Age.fromInt(age),
-      children = ChildCount.fromInt(children),
-      income   = Income.fromDouble(income),
-    ))
+  def withTaxParameters(age: Age, children: ChildCount, income: Income): ValidatedTaxRequest =
+    ValidatedTaxRequest(user = user, age = age, children = children, income = income)
 }
 
 case class ValidatedTaxRequest(
