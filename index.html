@@ -188,6 +188,7 @@
       font-size: 0.83rem;
       line-height: 1.6;
       background: #0d1117 !important;
+      color: #e6edf3;
       border-radius: 0;
       padding: 1.2rem 1.4rem !important;
       display: block;
@@ -826,6 +827,7 @@ stateDiagram-v2
 
 <!-- CDN scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/scala.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 
 <script>
@@ -841,6 +843,8 @@ const TABS = [
   { id: 'nextjs',       label: 'Next.js'         },
   { id: 'java',         label: 'Java · Spring'   },
   { id: 'rust',         label: 'Rust · Axum'     },
+  { id: 'python',       label: 'Python'          },
+  { id: 'scala',        label: 'Scala'           },
 ];
 
 const LANG_MAP = {
@@ -850,6 +854,8 @@ const LANG_MAP = {
   'nextjs':      'language-typescript',
   'java':        'language-java',
   'rust':        'language-rust',
+  'python':      'language-python',
+  'scala':       'language-scala',
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -929,6 +935,18 @@ const step1 = {
     if age >= 65 { rate -= 0.05; }
     rate -= children as f64 * 0.01;
     income * rate
+}`,
+  'python': `def tax_calculation(username: str, age: int, children: int, income: float) -> float:
+    rate = 0.30
+    if age >= 65:
+        rate -= 0.05
+    rate -= children * 0.01
+    return income * rate`,
+  'scala': `def taxCalculation(username: String, age: Int, children: Int, income: Double): Double = {
+  var rate = 0.30
+  if (age >= 65) rate -= 0.05
+  rate -= children * 0.01
+  income * rate
 }`,
 };
 
@@ -1050,6 +1068,27 @@ fn tax_calculation(
     if age >= 65 { rate -= 0.05; }
     rate -= children as f64 * 0.01;
     Ok(income * rate)
+}`,
+  'python': `def tax_calculation(username: str, age: int, children: int, income: float) -> float:
+    if age < 0 or age > 120:
+        raise ValueError(f"Age must be between 0 and 120, got {age}")
+    if children < 0:
+        raise ValueError("Children count cannot be negative")
+    if income < 0:
+        raise ValueError("Income cannot be negative")
+    rate = 0.30
+    if age >= 65:
+        rate -= 0.05
+    rate -= children * 0.01
+    return income * rate`,
+  'scala': `def taxCalculation(username: String, age: Int, children: Int, income: Double): Double = {
+  require(age >= 0 && age <= 120, s"Age must be between 0 and 120, got $age")
+  require(children >= 0, "Children count cannot be negative")
+  require(income >= 0, "Income cannot be negative")
+  var rate = 0.30
+  if (age >= 65) rate -= 0.05
+  rate -= children * 0.01
+  income * rate
 }`,
 };
 
@@ -1210,6 +1249,45 @@ fn tax_calculation(
     if age >= 65 { rate -= 0.05; }
     rate -= children as f64 * 0.01;
     Ok(income * rate)
+}`,
+  'python': `def assert_valid_age(age: int) -> None:
+    if age < 0 or age > 120:
+        raise ValueError(f"Age must be between 0 and 120, got {age}")
+
+def assert_valid_children(children: int) -> None:
+    if children < 0:
+        raise ValueError("Children count cannot be negative")
+
+def assert_valid_income(income: float) -> None:
+    if income < 0:
+        raise ValueError("Income cannot be negative")
+
+def tax_calculation(username: str, age: int, children: int, income: float) -> float:
+    assert_valid_age(age)
+    assert_valid_children(children)
+    assert_valid_income(income)
+    rate = 0.30
+    if age >= 65:
+        rate -= 0.05
+    rate -= children * 0.01
+    return income * rate`,
+  'scala': `def assertValidAge(age: Int): Unit =
+  require(age >= 0 && age <= 120, s"Age must be between 0 and 120, got $age")
+
+def assertValidChildren(children: Int): Unit =
+  require(children >= 0, "Children count cannot be negative")
+
+def assertValidIncome(income: Double): Unit =
+  require(income >= 0, "Income cannot be negative")
+
+def taxCalculation(username: String, age: Int, children: Int, income: Double): Double = {
+  assertValidAge(age)
+  assertValidChildren(children)
+  assertValidIncome(income)
+  var rate = 0.30
+  if (age >= 65) rate -= 0.05
+  rate -= children * 0.01
+  income * rate
 }`,
 };
 
@@ -1539,6 +1617,87 @@ pub fn tax_calculation(age: &Age, children: &ChildCount, income: &Income) -> f64
     rate -= children.value() as f64 * 0.01;
     income.value() * rate
 }`,
+  'python': `from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Age:
+    value: int
+
+    def __post_init__(self):
+        if self.value < 0 or self.value > 120:
+            raise ValueError(f"Age must be between 0 and 120, got {self.value}")
+
+    def is_senior(self) -> bool:
+        return self.value >= 65
+
+@dataclass(frozen=True)
+class ChildCount:
+    value: int
+
+    def __post_init__(self):
+        if self.value < 0:
+            raise ValueError(f"Child count cannot be negative, got {self.value}")
+
+@dataclass(frozen=True)
+class Income:
+    value: float
+
+    def __post_init__(self):
+        if self.value < 0:
+            raise ValueError(f"Income cannot be negative, got {self.value}")
+
+@dataclass(frozen=True)
+class UserName:
+    value: str
+
+    def __post_init__(self):
+        if not self.value.strip():
+            raise ValueError("Username cannot be empty")
+
+def tax_calculation(username: UserName, age: Age, children: ChildCount, income: Income) -> float:
+    rate = 0.30
+    if age.is_senior():
+        rate -= 0.05
+    rate -= children.value * 0.01
+    return income.value * rate`,
+  'scala': `case class Age private (value: Int) {
+  def isSenior: Boolean = value >= 65
+}
+object Age {
+  def fromInt(value: Int): Age = {
+    require(value >= 0 && value <= 120, s"Age must be between 0 and 120, got $value")
+    new Age(value)
+  }
+}
+
+case class ChildCount private (value: Int)
+object ChildCount {
+  def fromInt(value: Int): ChildCount = {
+    require(value >= 0, s"Child count cannot be negative, got $value")
+    new ChildCount(value)
+  }
+}
+
+case class Income private (value: Double)
+object Income {
+  def fromDouble(value: Double): Income = {
+    require(value >= 0, s"Income cannot be negative, got $value")
+    new Income(value)
+  }
+}
+
+case class UserName private (value: String)
+object UserName {
+  def fromString(value: String): UserName = {
+    require(value.trim.nonEmpty, "Username cannot be empty")
+    new UserName(value.trim)
+  }
+}
+
+def taxCalculation(username: UserName, age: Age, children: ChildCount, income: Income): Double = {
+  val discount = (if (age.isSenior) 0.05 else 0.0) + children.value * 0.01
+  income.value * (0.30 - discount)
+}`,
 };
 
 // ── NAIVE CONTROLLER ──
@@ -1605,6 +1764,30 @@ async fn calculate_tax(
     // all validation happens here again...
     let result = tax_calculation(params.age, params.children, params.income);
     Json(json!({ "tax": result }))
+}`,
+  'python': `from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/calculate-tax')
+def calculate_tax_endpoint():
+    age      = int(request.args.get('age', 0))
+    children = int(request.args.get('children', 0))
+    income   = float(request.args.get('income', 0))
+
+    # all validation happens here again...
+    result = tax_calculation(age, children, income)
+    return jsonify({'tax': result})`,
+  'scala': `// Play Framework
+def calculateTax = Action { request =>
+  val params   = request.queryString
+  val age      = params("age").head.toInt
+  val children = params("children").head.toInt
+  val income   = params("income").head.toDouble
+
+  // all validation happens here again...
+  val result = taxCalculation(age, children, income)
+  Ok(Json.obj("tax" -> result))
 }`,
 };
 
@@ -1735,6 +1918,42 @@ async fn calculate_tax(
     let result = tax_calculation(&age, &children, &income);
     Ok(Json(json!({ "tax": result })))
 }`,
+  'python': `from fastapi import FastAPI, Depends, Query
+from typing import Annotated
+
+app = FastAPI()
+
+# FastAPI validates and coerces query params automatically
+@app.get("/calculate-tax")
+def calculate_tax_endpoint(
+    age:      Annotated[int,   Query(ge=0, le=120)],
+    children: Annotated[int,   Query(ge=0)],
+    income:   Annotated[float, Query(ge=0)],
+    current_user: UserName = Depends(get_current_user),
+):
+    result = tax_calculation(
+        current_user,
+        Age(age),
+        ChildCount(children),
+        Income(income),
+    )
+    return {"tax": result}
+# FastAPI returns HTTP 422 automatically on constraint violation`,
+  'scala': `// Play Framework with custom query binders
+object AgeBinder {
+  implicit val binder: QueryStringBindable[Age] =
+    QueryStringBindable.bindableInt.transform(
+      i => Age.fromInt(i),
+      a => a.value
+    )
+}
+
+// Controller: no defensive code
+def calculateTax(age: Age, children: ChildCount, income: Income) = AuthenticatedAction { req =>
+  val result = taxCalculation(req.user, age, children, income)
+  Ok(Json.obj("tax" -> result))
+}
+// Play returns HTTP 400 automatically when binder throws`,
 };
 
 // ── STATE MACHINE ──
@@ -1989,6 +2208,72 @@ pub fn tax_calculation(req: &ValidatedTaxRequest) -> f64 {
     if req.age.is_senior() { rate -= 0.05; }
     rate -= req.children.value() as f64 * 0.01;
     req.income.value() * rate
+}`,
+  'python': `from dataclasses import dataclass
+from typing import Optional
+
+@dataclass(frozen=True)
+class AnonymousRequest:
+    raw_username: str
+
+    def authenticate(self, session) -> 'AuthenticatedRequest':
+        user = session.find_active_user(self.raw_username)
+        if user is None:
+            raise UnauthorizedError("User is not authenticated")
+        return AuthenticatedRequest(user=user)
+
+@dataclass(frozen=True)
+class AuthenticatedRequest:
+    user: AuthenticatedUser
+
+    def with_tax_parameters(self, age: int, children: int, income: float) -> 'ValidatedTaxRequest':
+        return ValidatedTaxRequest(
+            user=self.user,
+            age=Age(age),
+            children=ChildCount(children),
+            income=Income(income),
+        )
+
+@dataclass(frozen=True)
+class ValidatedTaxRequest:
+    user: AuthenticatedUser
+    age: Age
+    children: ChildCount
+    income: Income
+
+def tax_calculation(req: ValidatedTaxRequest) -> float:
+    rate = 0.30
+    if req.age.is_senior():
+        rate -= 0.05
+    rate -= req.children.value * 0.01
+    return req.income.value * rate`,
+  'scala': `case class AnonymousRequest(rawUsername: String) {
+  def authenticate(session: SessionService): Either[AuthError, AuthenticatedRequest] =
+    session.findActiveUser(rawUsername)
+      .map(AuthenticatedRequest.apply)
+      .toRight(AuthError.NotAuthenticated)
+}
+
+case class AuthenticatedRequest(user: AuthenticatedUser) {
+  def withTaxParameters(age: Int, children: Int, income: Double): Try[ValidatedTaxRequest] =
+    Try(ValidatedTaxRequest(
+      user     = user,
+      age      = Age.fromInt(age),
+      children = ChildCount.fromInt(children),
+      income   = Income.fromDouble(income),
+    ))
+}
+
+case class ValidatedTaxRequest(
+  user:     AuthenticatedUser,
+  age:      Age,
+  children: ChildCount,
+  income:   Income,
+)
+
+def taxCalculation(req: ValidatedTaxRequest): Double = {
+  val discount = (if (req.age.isSenior) 0.05 else 0.0) + req.children.value * 0.01
+  req.income.value * (0.30 - discount)
 }`,
 };
 
