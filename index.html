@@ -830,6 +830,7 @@ stateDiagram-v2
 <!-- CDN scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/scala.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/elixir.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 
 <script>
@@ -845,6 +846,7 @@ const TABS = [
   { id: 'rust',         label: 'Rust · Axum'     },
   { id: 'python',       label: 'Python'          },
   { id: 'scala',        label: 'Scala'           },
+  { id: 'elixir',       label: 'Elixir'          },
 ];
 
 const LANG_MAP = {
@@ -854,6 +856,7 @@ const LANG_MAP = {
   'rust':        'language-rust',
   'python':      'language-python',
   'scala':       'language-scala',
+  'elixir':      'language-elixir',
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -922,6 +925,12 @@ const step1 = {
   rate -= children * 0.01
   income * rate
 }`,
+  'elixir': `def tax_calculation(_username, age, children, income) do
+  rate = 0.30
+  rate = if age >= 65, do: rate - 0.05, else: rate
+  rate = rate - children * 0.01
+  income * rate
+end`,
 };
 
 // ── STEP 2: Inline Validation ──
@@ -1022,6 +1031,19 @@ fn tax_calculation(
   rate -= children * 0.01
   income * rate
 }`,
+  'elixir': `def tax_calculation(_username, age, children, income) do
+  cond do
+    age < 0 or age > 120 -> raise ArgumentError, "Age must be between 0 and 120, got #{age}"
+    children < 0         -> raise ArgumentError, "Children count cannot be negative"
+    income < 0           -> raise ArgumentError, "Income cannot be negative"
+    true                 -> :ok
+  end
+
+  rate = 0.30
+  rate = if age >= 65, do: rate - 0.05, else: rate
+  rate = rate - children * 0.01
+  income * rate
+end`,
 };
 
 // ── STEP 3: Extract Assertions ──
@@ -1162,6 +1184,28 @@ def taxCalculation(username: String, age: Int, children: Int, income: Double): D
   rate -= children * 0.01
   income * rate
 }`,
+  'elixir': `defp assert_valid_age(age) when age < 0 or age > 120,
+  do: raise ArgumentError, "Age must be between 0 and 120, got #{age}"
+defp assert_valid_age(_), do: :ok
+
+defp assert_valid_children(children) when children < 0,
+  do: raise ArgumentError, "Children count cannot be negative"
+defp assert_valid_children(_), do: :ok
+
+defp assert_valid_income(income) when income < 0,
+  do: raise ArgumentError, "Income cannot be negative"
+defp assert_valid_income(_), do: :ok
+
+def tax_calculation(_username, age, children, income) do
+  assert_valid_age(age)
+  assert_valid_children(children)
+  assert_valid_income(income)
+
+  rate = 0.30
+  rate = if age >= 65, do: rate - 0.05, else: rate
+  rate = rate - children * 0.01
+  income * rate
+end`,
 };
 
 // ── STEP 4: Value Objects ──
@@ -1450,6 +1494,38 @@ def taxCalculation(username: UserName, age: Age, children: ChildCount, income: I
   val discount = (if (age.isSenior) 0.05 else 0.0) + children.value * 0.01
   income.value * (0.30 - discount)
 }`,
+  'elixir': `defmodule Age do
+  @enforce_keys [:value]
+  defstruct [:value]
+
+  def new(v) when is_integer(v) and v >= 0 and v <= 120, do: {:ok, %Age{value: v}}
+  def new(v), do: {:error, "Age must be between 0 and 120, got #{v}"}
+
+  def senior?(%Age{value: v}), do: v >= 65
+end
+
+defmodule ChildCount do
+  @enforce_keys [:value]
+  defstruct [:value]
+
+  def new(v) when is_integer(v) and v >= 0, do: {:ok, %ChildCount{value: v}}
+  def new(v), do: {:error, "Child count cannot be negative, got #{v}"}
+end
+
+defmodule Income do
+  @enforce_keys [:value]
+  defstruct [:value]
+
+  def new(v) when is_number(v) and v >= 0, do: {:ok, %Income{value: v}}
+  def new(v), do: {:error, "Income cannot be negative, got #{v}"}
+end
+
+def tax_calculation(%UserName{}, %Age{} = age, %ChildCount{} = children, %Income{} = income) do
+  rate = 0.30
+  rate = if Age.senior?(age), do: rate - 0.05, else: rate
+  rate = rate - children.value * 0.01
+  income.value * rate
+end`,
 };
 
 // ── NAIVE CONTROLLER ──
@@ -1544,6 +1620,15 @@ def calculateTax = Action { request =>
   val result = taxCalculation(age, children, income)
   Ok(Json.obj("tax" -> result))
 }`,
+  'elixir': `def calculate_tax(conn, params) do
+  age      = String.to_integer(params["age"]      || "0")
+  children = String.to_integer(params["children"] || "0")
+  income   = String.to_float(params["income"]     || "0.0")
+
+  # all validation happens here again...
+  result = TaxCalculator.tax_calculation(age, children, income)
+  json(conn, %{tax: result})
+end`,
 };
 
 // ── TYPED CONTROLLER ──
@@ -1744,6 +1829,53 @@ def calculateTax(age: Age, children: ChildCount, income: Income) = Authenticated
   Ok(Json.obj("tax" -> result))
 }
 // Play returns HTTP 400 automatically when binder throws`,
+  'elixir': `# Define Ecto custom types — construction and validation in one place
+defmodule AgeType do
+  use Ecto.Type
+  def type, do: :integer
+  def cast(v) when is_integer(v) and v >= 0 and v <= 120, do: {:ok, %Age{value: v}}
+  def cast(v) when is_binary(v) do
+    case Integer.parse(v) do
+      {i, ""} -> cast(i)
+      _       -> :error
+    end
+  end
+  def cast(_), do: :error
+  def load(v), do: {:ok, %Age{value: v}}
+  def dump(%Age{value: v}), do: {:ok, v}
+end
+
+# Same pattern for ChildCountType and IncomeType
+
+defmodule TaxRequest do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  embedded_schema do
+    field :age,      AgeType
+    field :children, ChildCountType
+    field :income,   IncomeType
+  end
+
+  def parse(params) do
+    %TaxRequest{}
+    |> cast(params, [:age, :children, :income])
+    |> validate_required([:age, :children, :income])
+    |> apply_action(:insert)
+  end
+end
+
+# Controller: receives Age, ChildCount, Income structs directly
+def calculate_tax(conn, params) do
+  case TaxRequest.parse(params) do
+    {:ok, %TaxRequest{age: age, children: children, income: income}} ->
+      result = TaxCalculator.tax_calculation(age, children, income)
+      json(conn, %{tax: result})
+    {:error, changeset} ->
+      conn |> put_status(422) |> json(%{errors: format_errors(changeset)})
+  end
+end
+# Phoenix returns HTTP 422 automatically with ActionFallback`,
 };
 
 // ── STATE MACHINE ──
@@ -1951,6 +2083,35 @@ def taxCalculation(req: ValidatedTaxRequest): Double = {
   val discount = (if (req.age.isSenior) 0.05 else 0.0) + req.children.value * 0.01
   req.income.value * (0.30 - discount)
 }`,
+  'elixir': `defmodule AnonymousRequest do
+  defstruct [:raw_username]
+
+  def authenticate(%__MODULE__{raw_username: username}, session) do
+    case Session.find_active_user(session, username) do
+      nil  -> {:error, :unauthorized}
+      user -> {:ok, %AuthenticatedRequest{user: user}}
+    end
+  end
+end
+
+defmodule AuthenticatedRequest do
+  defstruct [:user]
+
+  def with_tax_parameters(%__MODULE__{user: user}, %Age{} = age, %ChildCount{} = children, %Income{} = income) do
+    %ValidatedTaxRequest{user: user, age: age, children: children, income: income}
+  end
+end
+
+defmodule ValidatedTaxRequest do
+  defstruct [:user, :age, :children, :income]
+end
+
+def tax_calculation(%ValidatedTaxRequest{age: age, children: children, income: income}) do
+  rate = 0.30
+  rate = if Age.senior?(age), do: rate - 0.05, else: rate
+  rate = rate - children.value * 0.01
+  income.value * rate
+end`,
 };
 
 // ── YAML CONTENT ──
