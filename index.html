@@ -491,13 +491,13 @@
 
   <p>Furthermore, this principle generalises beyond APIs. Functions, services, mobile app flows, website page transitions: any system with identifiable stages can be modelled as a type-driven state machine where each stage is a distinct type.</p>
 
-  <!-- ══ PART 3: CODE EVOLUTION IN PHP ══ -->
+  <!-- ══ PART 3: CODE EVOLUTION ══ -->
   <span class="part-label">Part 3</span>
   <h2>Code Evolution</h2>
 
   <!-- Step 1 -->
   <span class="step-label">Step 1: Primitive Obsession</span>
-  <p>The function below suffers from primitive obsession. Nothing stops a caller from passing <code>age = -5</code>, <code>children = -3</code>, or <code>income = -99999</code>. Nothing stops swapping <code>age</code> and <code>children</code> (both <code>int</code>). Every other function that uses these values must re-implement the same guards.</p>
+  <p>The function below suffers from primitive obsession. Nothing stops a caller from passing <code>quantity = 0</code>, <code>discount_percent = 150</code>, or <code>unit_price = -9.99</code>. Nothing stops swapping <code>quantity</code> and <code>discount_percent</code> (both <code>int</code>). Every other function that uses these values must re-implement the same guards.</p>
 
   <div class="concept-badge-row">
     <button class="concept-badge" data-target="theory-primitive-obsession">Primitive Obsession<span class="badge-tooltip">The use of primitive data types to represent domain concepts.</span></button>
@@ -509,7 +509,7 @@
 
   <!-- Step 2 -->
   <span class="step-label">Step 2: Inline Validation</span>
-  <p>Better. But every function that receives <code>age</code>, <code>children</code>, or <code>income</code> duplicates this code. The complexity caused by control has grown: we added three conditional branches that have nothing to do with the tax calculation itself.</p>
+  <p>Better. But every function that receives <code>product_name</code>, <code>quantity</code>, <code>unit_price</code>, or <code>discount_percent</code> duplicates this code. The complexity caused by control has grown: we added four conditional branches that have nothing to do with the line item calculation itself.</p>
 
   <div class="concept-badge-row">
     <button class="concept-badge" data-target="theory-control">Complexity: Control<span class="badge-tooltip">Conditional validation guards are accidental control flow — they specify how, not what.</span></button>
@@ -521,7 +521,7 @@
 
   <!-- Step 3 -->
   <span class="step-label">Step 3: Extract Assertions</span>
-  <p>Validation is now reusable. But look at the function signature: <code>(string, int, int, float)</code>. It still communicates nothing. An architectural diagram of this function reveals no domain concepts: four primitives go in, a float comes out.</p>
+  <p>Validation is now reusable. But look at the function signature: <code>(string, int, float, int)</code>. It still communicates nothing. An architectural diagram of this function reveals no domain concepts: four primitives go in, a float comes out.</p>
 
   <div class="concept-badge-row">
     <button class="concept-badge" data-target="theory-make-implicit-explicit">Make Implicit Concepts Explicit<span class="badge-tooltip">Concepts present in domain discussions must become first-class types in the model.</span></button>
@@ -535,22 +535,18 @@
   <div class="diagram-wrap">
     <pre class="mermaid">
 classDiagram
-    class tax_calculation {
-        +calculate(username string, age int, children int, income float) float
+    class calculate_line_total {
+        +calculate(name string, quantity int, unit_price float, discount_percent int) float
     }
-
     class HiddenRules {
         &lt;&lt;buried inside the function&gt;&gt;
-        +validateAge()
-        +validateChildren()
-        +validateIncome()
-        +applySeniorDiscount()
-        +applyChildDiscount()
+        +validateProductName()
+        +validateQuantity()
+        +validateUnitPrice()
+        +validateDiscountPercent()
     }
-
-    tax_calculation ..> HiddenRules : all rules invisible from signature
-
-    note for tax_calculation "Signature reveals nothing.\nCallers must read the body\nto know what values are valid."
+    calculate_line_total ..> HiddenRules : all rules invisible from signature
+    note for calculate_line_total "Signature reveals nothing.\nCallers must read the body\nto know what values are valid."
     </pre>
     <p class="diagram-caption">From the outside the function is a black box. A caller reading only the signature learns nothing about what values are valid or what rules apply.</p>
   </div>
@@ -558,51 +554,44 @@ classDiagram
   <div class="diagram-wrap">
     <pre class="mermaid">
 classDiagram
-    class tax_calculation {
-        +calculate(username UserName, age Age, children ChildCount, income Income) float
+    class calculate_line_total {
+        +calculate(name ProductName, qty Quantity, price Price, discount DiscountPercent) float
     }
-
-    class UserName {
+    class ProductName {
         -value string
-        +fromString(value string) UserName
+        +fromString(value string) ProductName
         +getValue() string
     }
-
-    class Age {
+    class Quantity {
         -value int
-        +fromInt(value int) Age
-        +isSenior() bool
+        +fromInt(value int) Quantity
         +getValue() int
     }
-
-    class ChildCount {
-        -value int
-        +fromInt(value int) ChildCount
-        +getValue() int
-    }
-
-    class Income {
+    class Price {
         -value float
-        +fromFloat(value float) Income
+        +fromFloat(value float) Price
         +getValue() float
     }
-
-    tax_calculation --> UserName
-    tax_calculation --> Age
-    tax_calculation --> ChildCount
-    tax_calculation --> Income
-
-    note for UserName "invariant: non-empty string"
-    note for Age "invariant: 0 to 120"
-    note for ChildCount "invariant: &gt;= 0"
-    note for Income "invariant: &gt;= 0"
+    class DiscountPercent {
+        -value int
+        +fromInt(value int) DiscountPercent
+        +getValue() int
+    }
+    calculate_line_total --> ProductName
+    calculate_line_total --> Quantity
+    calculate_line_total --> Price
+    calculate_line_total --> DiscountPercent
+    note for ProductName "invariant: non-empty string"
+    note for Quantity "invariant: >= 1"
+    note for Price "invariant: >= 0"
+    note for DiscountPercent "invariant: 0 to 100"
     </pre>
     <p class="diagram-caption">Every domain concept now has a name, a home, and a visible contract.</p>
   </div>
 
   <!-- Step 4 -->
   <span class="step-label">Step 4: Value Objects</span>
-  <p>With value objects, validation lives in the constructor. The function body shrinks to pure business logic.</p>
+  <p>With value objects, validation lives in the constructor. The function body is now a single expression with no branches at all.</p>
 
   <div class="concept-badge-row">
     <button class="concept-badge" data-target="theory-make-implicit-explicit">Make Implicit Concepts Explicit<span class="badge-tooltip">Concepts present in domain discussions must become first-class types in the model.</span></button>
@@ -615,7 +604,7 @@ classDiagram
 
   <ul>
     <li><strong>State:</strong> there is no hidden validation state; a value either exists as a valid type or it does not exist at all.</li>
-    <li><strong>Control:</strong> the function body has one branch, and that branch is purely about tax logic, not about defensive checks.</li>
+    <li><strong>Control:</strong> the function body has no branches at all; every guard has been removed by the type system.</li>
     <li><strong>Code volume:</strong> the function is shorter; the intent is clearer.</li>
     <li><strong>Signature as documentation:</strong> the function tells you exactly what domain concepts it requires.</li>
   </ul>
@@ -628,54 +617,40 @@ classDiagram
     <pre class="mermaid">
 stateDiagram-v2
     direction TB
-
-    [*] --> IncomingRequest : HTTP GET /calculate-tax
-
-    IncomingRequest --> HTTP401 : Symfony firewall, user not authenticated
-
+    [*] --> IncomingRequest : HTTP GET /cart/line-total
+    IncomingRequest --> HTTP401 : firewall, user not authenticated
     state "Authenticated Request" as AuthenticatedRequest {
-        a1 : AuthenticatedUser from session
+        a1 : session user
     }
-
     IncomingRequest --> AuthenticatedRequest : firewall passes
-
     state "Value Object Construction" as Construction {
-        c1 : UserName.fromString()
-        c2 : Age.fromInt()
-        c3 : ChildCount.fromInt()
-        c4 : Income.fromFloat()
+        c1 : ProductName.fromString()
+        c2 : Quantity.fromInt()
+        c3 : Price.fromFloat()
+        c4 : DiscountPercent.fromInt()
     }
-
     AuthenticatedRequest --> Construction : framework dispatcher
-
     Construction --> HTTP422 : any constructor throws, invalid domain value
-
-    state "Validated Tax Request" as ValidatedTaxRequest {
-        v1 : AuthenticatedUser user
-        v2 : Age age
-        v3 : ChildCount children
-        v4 : Income income
+    state "Validated Line Item Request" as ValidatedRequest {
+        v1 : ProductName name
+        v2 : Quantity quantity
+        v3 : Price unitPrice
+        v4 : DiscountPercent discount
     }
-
-    Construction --> ValidatedTaxRequest : all types constructed
-
-    state "Tax Result" as TaxResult {
-        r1 : float tax
-        r2 : float rate
+    Construction --> ValidatedRequest : all types constructed
+    state "Line Item Result" as LineItemResult {
+        r1 : float total
     }
-
-    ValidatedTaxRequest --> TaxResult : tax_calculation(), no guards needed
-
-    TaxResult --> [*] : HTTP 200
-
+    ValidatedRequest --> LineItemResult : calculate_line_total(), no guards needed
+    LineItemResult --> [*] : HTTP 200
     HTTP401 --> [*]
     HTTP422 --> [*]
     </pre>
-    <p class="diagram-caption">Each arrow is a transition that either succeeds (producing a richer type) or fails (producing an HTTP error). By the time tax_calculation() is reached, every guarantee has already been enforced structurally.</p>
+    <p class="diagram-caption">Each arrow is a transition that either succeeds (producing a richer type) or fails (producing an HTTP error). By the time calculate_line_total() is reached, every guarantee has already been enforced structurally.</p>
   </div>
 
   <h3>Before: Naive Controller</h3>
-  <p>In a naive implementation, the controller absorbs all the complexity we extracted into value objects.</p>
+  <p>In a naive implementation, the controller absorbs all the complexity we extracted into value objects. A request like <code>GET /cart/line-total?product_name=Widget&amp;quantity=2&amp;unit_price=9.99&amp;discount_percent=10</code> arrives as raw strings and the controller must validate everything itself.</p>
 
   <div class="concept-badge-row">
     <button class="concept-badge" data-target="theory-control">Complexity: Control<span class="badge-tooltip">Conditional validation guards are accidental control flow — they specify how, not what.</span></button>
@@ -687,7 +662,7 @@ stateDiagram-v2
   </div>
 
   <h3>After: Type-Driven Controller</h3>
-  <p>Since Symfony 6.3, the <code>MapQueryParameter</code> attribute combined with a custom <code>NormalizerInterface</code> allows the framework dispatcher to automatically deserialize query parameters into value objects before the controller is called. You register a normalizer once, and every controller that type-hints the value object benefits automatically.</p>
+  <p>The framework dispatcher automatically deserializes raw query parameters into value objects before the controller action is called. You register the mapping rule once, and every action that declares a value object as a parameter benefits automatically. Try <code>GET /cart/line-total?product_name=Widget&amp;quantity=0&amp;unit_price=9.99&amp;discount_percent=10</code>: the framework returns a <code>422 Unprocessable Entity</code> before your action body runs. The value <code>0</code> is a valid integer, but it fails the domain rule inside the <code>Quantity</code> constructor. No controller code handles this.</p>
 
   <div class="concept-badge-row">
     <button class="concept-badge" data-target="theory-type-driven">Type-Driven Development<span class="badge-tooltip">Make illegal states unrepresentable.</span></button>
@@ -723,8 +698,8 @@ stateDiagram-v2
   </div>
 
   <ul>
-    <li><strong>Self-documenting:</strong> <code>Age</code> carries its own description and constraints.</li>
-    <li><strong>Reusable:</strong> <code>$ref</code> means the <code>Age</code> schema appears once and is referenced everywhere.</li>
+    <li><strong>Self-documenting:</strong> <code>Quantity</code> carries its own description and constraints.</li>
+    <li><strong>Reusable:</strong> <code>$ref</code> means the <code>Quantity</code> schema appears once and is referenced everywhere.</li>
     <li><strong>Generatable:</strong> tools like API Platform can derive this OpenAPI spec directly from type-hinted controllers.</li>
   </ul>
 
@@ -732,16 +707,17 @@ stateDiagram-v2
   <span class="part-label">Part 6</span>
   <h2>Type-Driven State Machines</h2>
 
-  <p>Imagine the tax calculation requires the user to be logged in. Without typed flows, the function signature accepts a raw string as username. It cannot tell you whether that username has been authenticated. The authentication state is invisible at the type level.</p>
+  <p>A shopping cart has two structurally distinct states: an empty cart and a cart with items. These are not the same type. Operations that are invalid for a given state do not need runtime guards; the type itself makes them impossible or explicitly handled. <code>remove_item</code> called on an <code>EmptyCart</code> returns <code>{:error, :cart_is_empty}</code> by definition, through a separate function clause, not through an if-check in the caller. <code>calculate_total</code> on an <code>EmptyCart</code> returns <code>0.0</code> by definition. The caller never needs to ask.</p>
 
   <div class="transition-flow">
-    <span>AnonymousRequest</span><br>
-    <span class="arrow">&nbsp;&nbsp;&nbsp;| authenticate()</span> <span class="comment">// throws if not logged in</span><br>
-    <span>AuthenticatedRequest</span><br>
-    <span class="arrow">&nbsp;&nbsp;&nbsp;| withTaxParameters()</span> <span class="comment">// throws if params invalid</span><br>
-    <span>ValidatedTaxRequest</span><br>
-    <span class="arrow">&nbsp;&nbsp;&nbsp;| calculate()</span><br>
-    <span>TaxResult</span>
+    <span>EmptyCart</span><br>
+    <span class="arrow">&nbsp;&nbsp;&nbsp;| add_item(item)</span> <span class="comment">// only valid transition from EmptyCart</span><br>
+    <span>CartWithItems</span><br>
+    <span class="arrow">&nbsp;&nbsp;&nbsp;| add_item(item)</span> <span class="comment">// stays CartWithItems</span><br>
+    <span class="arrow">&nbsp;&nbsp;&nbsp;| remove_item (last item)</span> <span class="comment">// transitions back to EmptyCart</span><br>
+    <span class="arrow">&nbsp;&nbsp;&nbsp;| calculate_total()</span> <span class="comment">// 0.0 on EmptyCart, sum on CartWithItems</span><br>
+    <span class="arrow">&nbsp;&nbsp;&nbsp;| checkout()</span><br>
+    <span>Order</span>
   </div>
 
   <div class="concept-badge-row">
@@ -754,13 +730,32 @@ stateDiagram-v2
     <div class="tab-panes"></div>
   </div>
 
-  <p>"tax_calculation now receives a <code>ValidatedTaxRequest</code>. It is structurally impossible to call this function with an unauthenticated user or invalid parameters."</p>
+  <p>"The type of the cart IS its state. There is no <code>is_empty</code> boolean flag. There is no null check. There is no runtime guard in any caller. If you have a <code>CartWithItems</code>, it has items. If you call <code>checkout</code> on an <code>EmptyCart</code>, you get an error back, handled structurally."</p>
 
-  <p><strong>The state of the request is not stored as a boolean flag or a session variable to be checked; it is encoded in the type of the object itself.</strong></p>
+  <p><strong>The state of the cart is not stored as a boolean flag or checked at runtime; it is encoded in the type of the object itself.</strong></p>
 
   <!-- ══ SUMMARY TABLE ══ -->
   <span class="part-label">Summary</span>
   <h2>Summary</h2>
+
+  <h3>A Note on Classical OOP Inheritance</h3>
+
+  <p>The instinctive object-oriented response to the shopping cart state machine would be an abstract <code>Cart</code> base class with <code>EmptyCart</code> and <code>CartWithItems</code> as subclasses. The problem surfaces immediately: if <code>checkout()</code> is declared on the base, then <code>EmptyCart</code> must implement it, and the only option is to throw a runtime exception. That reintroduces exactly the control complexity the type system was supposed to eliminate.</p>
+
+  <p>Type-driven state machines say something different. <code>EmptyCart</code> and <code>CartWithItems</code> are not specializations of a common base; they are distinct variants of a concept. <code>checkout()</code> does not exist on <code>EmptyCart</code>. The compiler enforces it.</p>
+
+  <p>The languages in this article handle the shared type boundary in different ways:</p>
+
+  <ul>
+    <li><strong>Java</strong> uses a <code>sealed interface Cart permits EmptyCart, CartWithItems</code>. The seal is not for code reuse; it enables exhaustive pattern matching in a switch expression and prevents subtypes outside the module. This is an algebraic sum type expressed through the interface system.</li>
+    <li><strong>Scala</strong> uses a <code>sealed trait Cart</code>. Same principle: the compiler warns on non-exhaustive matches, and the trait carries no implementation, only the contract for exhaustive dispatch.</li>
+    <li><strong>Rust</strong> is the most explicit: <code>EmptyCart</code> and <code>CartWithItems</code> are plain structs, and <code>Cart</code> is an <code>enum</code> that wraps them as variants. There is no inheritance anywhere. Exhaustive matching is enforced by the compiler on every <code>match</code>.</li>
+    <li><strong>TypeScript</strong> expresses it as a union type: <code>EmptyCart | CartWithItems</code>. The two classes are entirely independent; the union is a structural constraint at the type level, not a runtime relationship.</li>
+    <li><strong>Elixir</strong> has no class hierarchy at all. <code>EmptyCart</code> and <code>CartWithItems</code> are separate structs, and dispatch happens through pattern-matched function clauses. The type itself is the match guard.</li>
+    <li><strong>PHP</strong> and <strong>Python</strong>, which lack sealed types, use separate final classes with no shared base. The contract is expressed through type hints, and the responsibility for exhaustiveness falls on the developer rather than the compiler.</li>
+  </ul>
+
+  <p>The pattern inverts the OOP instinct. Instead of making a base class and overriding, the question becomes: what are the distinct states this thing can be in? Make each one a separate type. Attach operations only where they are valid. Express commonality through exhaustive pattern matching, not through a shared mutable interface.</p>
 
   <table class="summary-table">
     <thead>
@@ -797,7 +792,7 @@ stateDiagram-v2
   <span class="part-label">Final Contract</span>
   <h2>Final OpenAPI: A Fully Type-Driven Contract</h2>
 
-  <p>Bringing everything together: security declared through a scheme rather than a parameter, domain types as reusable components with constraints, no primitive leakage at the boundary. The username parameter disappears entirely; the authenticated user is derived from the Bearer token by the security layer.</p>
+  <p>Bringing everything together: security declared through a scheme, domain types as reusable components with constraints, no primitive leakage at the boundary. The caller is identified through the Bearer token; no username parameter is needed.</p>
 
   <div class="yaml-block" id="yaml-final">
     <pre><code class="language-yaml"></code></pre>
@@ -807,7 +802,7 @@ stateDiagram-v2
     <li><strong>Who can call it:</strong> only authenticated users, via Bearer token.</li>
     <li><strong>What each parameter means:</strong> types carry their own descriptions and constraints.</li>
     <li><strong>What can go wrong:</strong> 401 if the token is missing, 422 if a parameter violates a domain rule, each with a typed error response.</li>
-    <li><strong>What comes back:</strong> a typed result, not a raw number.</li>
+    <li><strong>What comes back:</strong> a typed result with the calculated total.</li>
   </ul>
 
   <p>"Every piece of knowledge that was previously buried inside the function body is now surface-level, encoded structurally in the contract itself."</p>
@@ -865,1332 +860,1418 @@ const LANG_MAP = {
 
 // ── STEP 1: Primitive Obsession ──
 const step1 = {
-  'php': `function tax_calculation(
-    string $username,
-    int $age,
-    int $children,
-    float $income
+  'php': `function calculate_line_total(
+    string $productName,
+    int $quantity,
+    float $unitPrice,
+    int $discountPercent
 ): float {
-    $rate = 0.30;
-    if ($age >= 65) {
-        $rate -= 0.05;
-    }
-    $rate -= $children * 0.01;
-    return $income * $rate;
+    return $quantity * $unitPrice * (1 - $discountPercent / 100.0);
 }`,
-  'typescript': `function taxCalculation(
-    username: string,
-    age: number,
-    children: number,
-    income: number
+  'typescript': `function calculateLineTotal(
+    productName: string,
+    quantity: number,
+    unitPrice: number,
+    discountPercent: number
 ): number {
-    let rate = 0.30;
-    if (age >= 65) rate -= 0.05;
-    rate -= children * 0.01;
-    return income * rate;
+    return quantity * unitPrice * (1 - discountPercent / 100);
 }`,
-  'java': `public class TaxService {
-    public double taxCalculation(
-        String username,
-        int age,
-        int children,
-        double income
+  'java': `public class CartService {
+    public double calculateLineTotal(
+        String productName,
+        int quantity,
+        double unitPrice,
+        int discountPercent
     ) {
-        double rate = 0.30;
-        if (age >= 65) rate -= 0.05;
-        rate -= children * 0.01;
-        return income * rate;
+        return quantity * unitPrice * (1 - discountPercent / 100.0);
     }
 }`,
-  'rust': `fn tax_calculation(
-    _username: &str,
-    age: u32,
-    children: u32,
-    income: f64,
+  'rust': `fn calculate_line_total(
+    _product_name: &str,
+    quantity: u32,
+    unit_price: f64,
+    discount_percent: u32,
 ) -> f64 {
-    let mut rate = 0.30_f64;
-    if age >= 65 { rate -= 0.05; }
-    rate -= children as f64 * 0.01;
-    income * rate
+    quantity as f64 * unit_price * (1.0 - discount_percent as f64 / 100.0)
 }`,
-  'python': `def tax_calculation(username: str, age: int, children: int, income: float) -> float:
-    rate = 0.30
-    if age >= 65:
-        rate -= 0.05
-    rate -= children * 0.01
-    return income * rate`,
-  'scala': `def taxCalculation(username: String, age: Int, children: Int, income: Double): Double = {
-  var rate = 0.30
-  if (age >= 65) rate -= 0.05
-  rate -= children * 0.01
-  income * rate
-}`,
-  'elixir': `def tax_calculation(_username, age, children, income) do
-  rate = 0.30
-  rate = if age >= 65, do: rate - 0.05, else: rate
-  rate = rate - children * 0.01
-  income * rate
+  'python': `def calculate_line_total(product_name: str, quantity: int, unit_price: float, discount_percent: int) -> float:
+    return quantity * unit_price * (1 - discount_percent / 100)`,
+  'scala': `def calculateLineTotal(productName: String, quantity: Int, unitPrice: Double, discountPercent: Int): Double =
+  quantity * unitPrice * (1 - discountPercent / 100.0)`,
+  'elixir': `def calculate_line_total(_product_name, quantity, unit_price, discount_percent) do
+  quantity * unit_price * (1 - discount_percent / 100)
 end`,
 };
 
 // ── STEP 2: Inline Validation ──
 const step2 = {
-  'php': `function tax_calculation(
-    string $username,
-    int $age,
-    int $children,
-    float $income
+  'php': `function calculate_line_total(
+    string $productName,
+    int $quantity,
+    float $unitPrice,
+    int $discountPercent
 ): float {
-    if ($age < 0 || $age > 120) {
-        throw new \\InvalidArgumentException('Age must be between 0 and 120');
+    if (trim($productName) === '') {
+        throw new \\InvalidArgumentException('Product name cannot be empty');
     }
-    if ($children < 0) {
-        throw new \\InvalidArgumentException('Children count cannot be negative');
+    if ($quantity < 1) {
+        throw new \\InvalidArgumentException('Quantity must be at least 1');
     }
-    if ($income < 0) {
-        throw new \\InvalidArgumentException('Income cannot be negative');
+    if ($unitPrice < 0) {
+        throw new \\InvalidArgumentException('Unit price cannot be negative');
     }
-    $rate = 0.30;
-    if ($age >= 65) {
-        $rate -= 0.05;
+    if ($discountPercent < 0 || $discountPercent > 100) {
+        throw new \\InvalidArgumentException('Discount must be between 0 and 100');
     }
-    $rate -= $children * 0.01;
-    return $income * $rate;
+    return $quantity * $unitPrice * (1 - $discountPercent / 100.0);
 }`,
-  'typescript': `function taxCalculation(
-    username: string,
-    age: number,
-    children: number,
-    income: number
+  'typescript': `function calculateLineTotal(
+    productName: string,
+    quantity: number,
+    unitPrice: number,
+    discountPercent: number
 ): number {
-    if (age < 0 || age > 120) {
-        throw new Error('Age must be between 0 and 120, got ' + age);
-    }
-    if (children < 0) {
-        throw new Error('Children count cannot be negative');
-    }
-    if (income < 0) {
-        throw new Error('Income cannot be negative');
-    }
-    let rate = 0.30;
-    if (age >= 65) rate -= 0.05;
-    rate -= children * 0.01;
-    return income * rate;
+    if (!productName.trim())
+        throw new Error('Product name cannot be empty');
+    if (quantity < 1)
+        throw new Error('Quantity must be at least 1, got ' + quantity);
+    if (unitPrice < 0)
+        throw new Error('Unit price cannot be negative');
+    if (discountPercent < 0 || discountPercent > 100)
+        throw new Error('Discount must be between 0 and 100, got ' + discountPercent);
+    return quantity * unitPrice * (1 - discountPercent / 100);
 }`,
-  'java': `public double taxCalculation(
-    String username, int age, int children, double income
+  'java': `public double calculateLineTotal(
+    String productName, int quantity, double unitPrice, int discountPercent
 ) {
-    if (age < 0 || age > 120)
-        throw new IllegalArgumentException("Age must be between 0 and 120, got " + age);
-    if (children < 0)
-        throw new IllegalArgumentException("Children count cannot be negative");
-    if (income < 0)
-        throw new IllegalArgumentException("Income cannot be negative");
-
-    double rate = 0.30;
-    if (age >= 65) rate -= 0.05;
-    rate -= children * 0.01;
-    return income * rate;
+    if (productName == null || productName.trim().isEmpty())
+        throw new IllegalArgumentException("Product name cannot be empty");
+    if (quantity < 1)
+        throw new IllegalArgumentException("Quantity must be at least 1, got " + quantity);
+    if (unitPrice < 0)
+        throw new IllegalArgumentException("Unit price cannot be negative");
+    if (discountPercent < 0 || discountPercent > 100)
+        throw new IllegalArgumentException("Discount must be between 0 and 100, got " + discountPercent);
+    return quantity * unitPrice * (1 - discountPercent / 100.0);
 }`,
-  'rust': `// Note: u32 is always >= 0, so children needs no validation
-fn tax_calculation(
-    _username: &str,
-    age: u32,
-    children: u32,
-    income: f64,
+  'rust': `fn calculate_line_total(
+    product_name: &str,
+    quantity: u32,
+    unit_price: f64,
+    discount_percent: u32,
 ) -> Result<f64, String> {
-    if age > 120 {
-        return Err(format!("Age must be <= 120, got {}", age));
+    if product_name.trim().is_empty() {
+        return Err("Product name cannot be empty".into());
     }
-    if income < 0.0 {
-        return Err(format!("Income cannot be negative, got {}", income));
+    if quantity < 1 {
+        return Err(format!("Quantity must be at least 1, got {}", quantity));
     }
-    let mut rate = 0.30_f64;
-    if age >= 65 { rate -= 0.05; }
-    rate -= children as f64 * 0.01;
-    Ok(income * rate)
+    if unit_price < 0.0 {
+        return Err(format!("Unit price cannot be negative, got {}", unit_price));
+    }
+    if discount_percent > 100 {
+        return Err(format!("Discount must be 0-100, got {}", discount_percent));
+    }
+    Ok(quantity as f64 * unit_price * (1.0 - discount_percent as f64 / 100.0))
 }`,
-  'python': `def tax_calculation(username: str, age: int, children: int, income: float) -> float:
-    if age < 0 or age > 120:
-        raise ValueError(f"Age must be between 0 and 120, got {age}")
-    if children < 0:
-        raise ValueError("Children count cannot be negative")
-    if income < 0:
-        raise ValueError("Income cannot be negative")
-    rate = 0.30
-    if age >= 65:
-        rate -= 0.05
-    rate -= children * 0.01
-    return income * rate`,
-  'scala': `def taxCalculation(username: String, age: Int, children: Int, income: Double): Double = {
-  require(age >= 0 && age <= 120, s"Age must be between 0 and 120, got $age")
-  require(children >= 0, "Children count cannot be negative")
-  require(income >= 0, "Income cannot be negative")
-  var rate = 0.30
-  if (age >= 65) rate -= 0.05
-  rate -= children * 0.01
-  income * rate
+  'python': `def calculate_line_total(product_name: str, quantity: int, unit_price: float, discount_percent: int) -> float:
+    if not product_name.strip():
+        raise ValueError("Product name cannot be empty")
+    if quantity < 1:
+        raise ValueError(f"Quantity must be at least 1, got {quantity}")
+    if unit_price < 0:
+        raise ValueError(f"Unit price cannot be negative, got {unit_price}")
+    if discount_percent < 0 or discount_percent > 100:
+        raise ValueError(f"Discount must be between 0 and 100, got {discount_percent}")
+    return quantity * unit_price * (1 - discount_percent / 100)`,
+  'scala': `def calculateLineTotal(productName: String, quantity: Int, unitPrice: Double, discountPercent: Int): Double = {
+  require(productName.trim.nonEmpty, "Product name cannot be empty")
+  require(quantity >= 1, s"Quantity must be at least 1, got $quantity")
+  require(unitPrice >= 0, s"Unit price cannot be negative, got $unitPrice")
+  require(discountPercent >= 0 && discountPercent <= 100, s"Discount must be between 0 and 100, got $discountPercent")
+  quantity * unitPrice * (1 - discountPercent / 100.0)
 }`,
-  'elixir': `def tax_calculation(_username, age, children, income) do
+  'elixir': `def calculate_line_total(product_name, quantity, unit_price, discount_percent) do
   cond do
-    age < 0 or age > 120 -> raise ArgumentError, "Age must be between 0 and 120, got #{age}"
-    children < 0         -> raise ArgumentError, "Children count cannot be negative"
-    income < 0           -> raise ArgumentError, "Income cannot be negative"
-    true                 -> :ok
+    String.trim(product_name) == ""                -> raise ArgumentError, "Product name cannot be empty"
+    quantity < 1                                    -> raise ArgumentError, "Quantity must be at least 1"
+    unit_price < 0                                  -> raise ArgumentError, "Unit price cannot be negative"
+    discount_percent < 0 or discount_percent > 100  -> raise ArgumentError, "Discount must be between 0 and 100"
+    true                                            -> :ok
   end
 
-  rate = 0.30
-  rate = if age >= 65, do: rate - 0.05, else: rate
-  rate = rate - children * 0.01
-  income * rate
+  quantity * unit_price * (1 - discount_percent / 100)
 end`,
 };
 
 // ── STEP 3: Extract Assertions ──
 const step3 = {
-  'php': `function assert_valid_age(int $age): void {
-    if ($age < 0 || $age > 120) {
-        throw new \\InvalidArgumentException('Age must be between 0 and 120');
+  'php': `function assert_valid_product_name(string $name): void {
+    if (trim($name) === '') {
+        throw new \\InvalidArgumentException('Product name cannot be empty');
     }
 }
 
-function assert_valid_children(int $children): void {
-    if ($children < 0) {
-        throw new \\InvalidArgumentException('Children count cannot be negative');
+function assert_valid_quantity(int $quantity): void {
+    if ($quantity < 1) {
+        throw new \\InvalidArgumentException('Quantity must be at least 1');
     }
 }
 
-function assert_valid_income(float $income): void {
-    if ($income < 0) {
-        throw new \\InvalidArgumentException('Income cannot be negative');
+function assert_valid_unit_price(float $unitPrice): void {
+    if ($unitPrice < 0) {
+        throw new \\InvalidArgumentException('Unit price cannot be negative');
     }
 }
 
-function tax_calculation(
-    string $username,
-    int $age,
-    int $children,
-    float $income
+function assert_valid_discount(int $discountPercent): void {
+    if ($discountPercent < 0 || $discountPercent > 100) {
+        throw new \\InvalidArgumentException('Discount must be between 0 and 100');
+    }
+}
+
+function calculate_line_total(
+    string $productName,
+    int $quantity,
+    float $unitPrice,
+    int $discountPercent
 ): float {
-    assert_valid_age($age);
-    assert_valid_children($children);
-    assert_valid_income($income);
+    assert_valid_product_name($productName);
+    assert_valid_quantity($quantity);
+    assert_valid_unit_price($unitPrice);
+    assert_valid_discount($discountPercent);
 
-    $rate = 0.30;
-    if ($age >= 65) {
-        $rate -= 0.05;
-    }
-    $rate -= $children * 0.01;
-    return $income * $rate;
+    return $quantity * $unitPrice * (1 - $discountPercent / 100.0);
 }`,
-  'typescript': `function assertValidAge(age: number): void {
-    if (age < 0 || age > 120)
-        throw new Error('Age must be between 0 and 120, got ' + age);
+  'typescript': `function assertValidProductName(name: string): void {
+    if (!name.trim()) throw new Error('Product name cannot be empty');
 }
-function assertValidChildren(children: number): void {
-    if (children < 0)
-        throw new Error('Children count cannot be negative');
+function assertValidQuantity(quantity: number): void {
+    if (quantity < 1) throw new Error('Quantity must be at least 1, got ' + quantity);
 }
-function assertValidIncome(income: number): void {
-    if (income < 0)
-        throw new Error('Income cannot be negative');
+function assertValidUnitPrice(unitPrice: number): void {
+    if (unitPrice < 0) throw new Error('Unit price cannot be negative');
+}
+function assertValidDiscount(discountPercent: number): void {
+    if (discountPercent < 0 || discountPercent > 100)
+        throw new Error('Discount must be between 0 and 100, got ' + discountPercent);
 }
 
-function taxCalculation(
-    username: string, age: number, children: number, income: number
+function calculateLineTotal(
+    productName: string, quantity: number, unitPrice: number, discountPercent: number
 ): number {
-    assertValidAge(age);
-    assertValidChildren(children);
-    assertValidIncome(income);
-    let rate = 0.30;
-    if (age >= 65) rate -= 0.05;
-    rate -= children * 0.01;
-    return income * rate;
+    assertValidProductName(productName);
+    assertValidQuantity(quantity);
+    assertValidUnitPrice(unitPrice);
+    assertValidDiscount(discountPercent);
+    return quantity * unitPrice * (1 - discountPercent / 100);
 }`,
-  'java': `private static void assertValidAge(int age) {
-    if (age < 0 || age > 120)
-        throw new IllegalArgumentException("Age must be between 0 and 120, got " + age);
+  'java': `private static void assertValidProductName(String name) {
+    if (name == null || name.trim().isEmpty())
+        throw new IllegalArgumentException("Product name cannot be empty");
 }
-private static void assertValidIncome(double income) {
-    if (income < 0)
-        throw new IllegalArgumentException("Income cannot be negative");
+private static void assertValidQuantity(int quantity) {
+    if (quantity < 1)
+        throw new IllegalArgumentException("Quantity must be at least 1, got " + quantity);
+}
+private static void assertValidUnitPrice(double unitPrice) {
+    if (unitPrice < 0)
+        throw new IllegalArgumentException("Unit price cannot be negative");
+}
+private static void assertValidDiscount(int discountPercent) {
+    if (discountPercent < 0 || discountPercent > 100)
+        throw new IllegalArgumentException("Discount must be between 0 and 100, got " + discountPercent);
 }
 
-public double taxCalculation(
-    String username, int age, int children, double income
+public double calculateLineTotal(
+    String productName, int quantity, double unitPrice, int discountPercent
 ) {
-    assertValidAge(age);
-    assertValidIncome(income);
-    double rate = 0.30;
-    if (age >= 65) rate -= 0.05;
-    rate -= children * 0.01;
-    return income * rate;
+    assertValidProductName(productName);
+    assertValidQuantity(quantity);
+    assertValidUnitPrice(unitPrice);
+    assertValidDiscount(discountPercent);
+    return quantity * unitPrice * (1 - discountPercent / 100.0);
 }`,
-  'rust': `fn assert_valid_age(age: u32) -> Result<(), String> {
-    if age > 120 { Err(format!("Age must be <= 120, got {}", age)) }
+  'rust': `fn assert_valid_product_name(name: &str) -> Result<(), String> {
+    if name.trim().is_empty() { Err("Product name cannot be empty".into()) }
     else { Ok(()) }
 }
-fn assert_valid_income(income: f64) -> Result<(), String> {
-    if income < 0.0 { Err("Income cannot be negative".into()) }
+fn assert_valid_unit_price(price: f64) -> Result<(), String> {
+    if price < 0.0 { Err("Unit price cannot be negative".into()) }
+    else { Ok(()) }
+}
+fn assert_valid_discount(discount: u32) -> Result<(), String> {
+    if discount > 100 { Err(format!("Discount must be 0-100, got {}", discount)) }
     else { Ok(()) }
 }
 
-fn tax_calculation(
-    _username: &str, age: u32, children: u32, income: f64
+fn calculate_line_total(
+    product_name: &str, quantity: u32, unit_price: f64, discount_percent: u32
 ) -> Result<f64, String> {
-    assert_valid_age(age)?;
-    assert_valid_income(income)?;
-    let mut rate = 0.30_f64;
-    if age >= 65 { rate -= 0.05; }
-    rate -= children as f64 * 0.01;
-    Ok(income * rate)
+    assert_valid_product_name(product_name)?;
+    if quantity < 1 { return Err("Quantity must be at least 1".into()); }
+    assert_valid_unit_price(unit_price)?;
+    assert_valid_discount(discount_percent)?;
+    Ok(quantity as f64 * unit_price * (1.0 - discount_percent as f64 / 100.0))
 }`,
-  'python': `def assert_valid_age(age: int) -> None:
-    if age < 0 or age > 120:
-        raise ValueError(f"Age must be between 0 and 120, got {age}")
+  'python': `def assert_valid_product_name(name: str) -> None:
+    if not name.strip():
+        raise ValueError("Product name cannot be empty")
 
-def assert_valid_children(children: int) -> None:
-    if children < 0:
-        raise ValueError("Children count cannot be negative")
+def assert_valid_quantity(quantity: int) -> None:
+    if quantity < 1:
+        raise ValueError(f"Quantity must be at least 1, got {quantity}")
 
-def assert_valid_income(income: float) -> None:
-    if income < 0:
-        raise ValueError("Income cannot be negative")
+def assert_valid_unit_price(unit_price: float) -> None:
+    if unit_price < 0:
+        raise ValueError(f"Unit price cannot be negative, got {unit_price}")
 
-def tax_calculation(username: str, age: int, children: int, income: float) -> float:
-    assert_valid_age(age)
-    assert_valid_children(children)
-    assert_valid_income(income)
-    rate = 0.30
-    if age >= 65:
-        rate -= 0.05
-    rate -= children * 0.01
-    return income * rate`,
-  'scala': `def assertValidAge(age: Int): Unit =
-  require(age >= 0 && age <= 120, s"Age must be between 0 and 120, got $age")
+def assert_valid_discount(discount_percent: int) -> None:
+    if discount_percent < 0 or discount_percent > 100:
+        raise ValueError(f"Discount must be between 0 and 100, got {discount_percent}")
 
-def assertValidChildren(children: Int): Unit =
-  require(children >= 0, "Children count cannot be negative")
+def calculate_line_total(product_name: str, quantity: int, unit_price: float, discount_percent: int) -> float:
+    assert_valid_product_name(product_name)
+    assert_valid_quantity(quantity)
+    assert_valid_unit_price(unit_price)
+    assert_valid_discount(discount_percent)
+    return quantity * unit_price * (1 - discount_percent / 100)`,
+  'scala': `def assertValidProductName(name: String): Unit =
+  require(name.trim.nonEmpty, "Product name cannot be empty")
 
-def assertValidIncome(income: Double): Unit =
-  require(income >= 0, "Income cannot be negative")
+def assertValidQuantity(quantity: Int): Unit =
+  require(quantity >= 1, s"Quantity must be at least 1, got $quantity")
 
-def taxCalculation(username: String, age: Int, children: Int, income: Double): Double = {
-  assertValidAge(age)
-  assertValidChildren(children)
-  assertValidIncome(income)
-  var rate = 0.30
-  if (age >= 65) rate -= 0.05
-  rate -= children * 0.01
-  income * rate
+def assertValidUnitPrice(unitPrice: Double): Unit =
+  require(unitPrice >= 0, s"Unit price cannot be negative, got $unitPrice")
+
+def assertValidDiscount(discountPercent: Int): Unit =
+  require(discountPercent >= 0 && discountPercent <= 100, s"Discount must be between 0 and 100, got $discountPercent")
+
+def calculateLineTotal(productName: String, quantity: Int, unitPrice: Double, discountPercent: Int): Double = {
+  assertValidProductName(productName)
+  assertValidQuantity(quantity)
+  assertValidUnitPrice(unitPrice)
+  assertValidDiscount(discountPercent)
+  quantity * unitPrice * (1 - discountPercent / 100.0)
 }`,
-  'elixir': `defp assert_valid_age(age) when age < 0 or age > 120,
-  do: raise ArgumentError, "Age must be between 0 and 120, got #{age}"
-defp assert_valid_age(_), do: :ok
+  'elixir': `defp assert_valid_product_name(n) when is_binary(n) and byte_size(n) > 0, do: :ok
+defp assert_valid_product_name(_), do: raise ArgumentError, "Product name cannot be empty"
 
-defp assert_valid_children(children) when children < 0,
-  do: raise ArgumentError, "Children count cannot be negative"
-defp assert_valid_children(_), do: :ok
+defp assert_valid_quantity(n) when is_integer(n) and n >= 1, do: :ok
+defp assert_valid_quantity(n), do: raise ArgumentError, "Quantity must be at least 1, got #{n}"
 
-defp assert_valid_income(income) when income < 0,
-  do: raise ArgumentError, "Income cannot be negative"
-defp assert_valid_income(_), do: :ok
+defp assert_valid_unit_price(v) when is_number(v) and v >= 0, do: :ok
+defp assert_valid_unit_price(_), do: raise ArgumentError, "Unit price cannot be negative"
 
-def tax_calculation(_username, age, children, income) do
-  assert_valid_age(age)
-  assert_valid_children(children)
-  assert_valid_income(income)
+defp assert_valid_discount(v) when is_integer(v) and v >= 0 and v <= 100, do: :ok
+defp assert_valid_discount(v), do: raise ArgumentError, "Discount must be between 0 and 100, got #{v}"
 
-  rate = 0.30
-  rate = if age >= 65, do: rate - 0.05, else: rate
-  rate = rate - children * 0.01
-  income * rate
+def calculate_line_total(product_name, quantity, unit_price, discount_percent) do
+  assert_valid_product_name(product_name)
+  assert_valid_quantity(quantity)
+  assert_valid_unit_price(unit_price)
+  assert_valid_discount(discount_percent)
+
+  quantity * unit_price * (1 - discount_percent / 100)
 end`,
 };
 
 // ── STEP 4: Value Objects ──
 const step4 = {
-  'php': `final class Age
-{
-    private function __construct(private readonly int $value) {}
-
-    public static function fromInt(int $value): self
-    {
-        if ($value < 0 || $value > 120) {
-            throw new \\InvalidArgumentException(
-                "Age must be between 0 and 120, got {$value}"
-            );
-        }
-        return new self($value);
-    }
-
-    public function isSenior(): bool { return $this->value >= 65; }
-    public function getValue(): int  { return $this->value; }
-}
-
-final class ChildCount
-{
-    private function __construct(private readonly int $value) {}
-
-    public static function fromInt(int $value): self
-    {
-        if ($value < 0) {
-            throw new \\InvalidArgumentException("Child count cannot be negative");
-        }
-        return new self($value);
-    }
-    public function getValue(): int { return $this->value; }
-}
-
-final class Income
-{
-    private function __construct(private readonly float $value) {}
-
-    public static function fromFloat(float $value): self
-    {
-        if ($value < 0) {
-            throw new \\InvalidArgumentException("Income cannot be negative");
-        }
-        return new self($value);
-    }
-    public function getValue(): float { return $this->value; }
-}
-
-final class UserName
+  'php': `final class ProductName
 {
     private function __construct(private readonly string $value) {}
 
     public static function fromString(string $value): self
     {
         if (trim($value) === '') {
-            throw new \\InvalidArgumentException('Username cannot be empty');
+            throw new \\InvalidArgumentException('Product name cannot be empty');
         }
         return new self(trim($value));
     }
+
     public function getValue(): string { return $this->value; }
 }
 
-function tax_calculation(
-    UserName $username,
-    Age $age,
-    ChildCount $children,
-    Income $income
+final class Quantity
+{
+    private function __construct(private readonly int $value) {}
+
+    public static function fromInt(int $value): self
+    {
+        if ($value < 1) {
+            throw new \\InvalidArgumentException(
+                "Quantity must be at least 1, got {$value}"
+            );
+        }
+        return new self($value);
+    }
+
+    public function getValue(): int { return $this->value; }
+}
+
+final class Price
+{
+    private function __construct(private readonly float $value) {}
+
+    public static function fromFloat(float $value): self
+    {
+        if ($value < 0) {
+            throw new \\InvalidArgumentException(
+                "Unit price cannot be negative, got {$value}"
+            );
+        }
+        return new self($value);
+    }
+
+    public function getValue(): float { return $this->value; }
+}
+
+final class DiscountPercent
+{
+    private function __construct(private readonly int $value) {}
+
+    public static function fromInt(int $value): self
+    {
+        if ($value < 0 || $value > 100) {
+            throw new \\InvalidArgumentException(
+                "Discount must be between 0 and 100, got {$value}"
+            );
+        }
+        return new self($value);
+    }
+
+    public function getValue(): int { return $this->value; }
+}
+
+function calculate_line_total(
+    ProductName $name,
+    Quantity $quantity,
+    Price $unitPrice,
+    DiscountPercent $discount
 ): float {
-    $rate = 0.30;
-    if ($age->isSenior()) {
-        $rate -= 0.05;
-    }
-    $rate -= $children->getValue() * 0.01;
-    return $income->getValue() * $rate;
+    return $quantity->getValue() * $unitPrice->getValue()
+        * (1 - $discount->getValue() / 100.0);
 }`,
-  'typescript': `class Age {
-    private constructor(private readonly value: number) {}
-    static fromNumber(value: number): Age {
-        if (value < 0 || value > 120)
-            throw new Error('Age must be between 0 and 120, got ' + value);
-        return new Age(value);
-    }
-    isSenior(): boolean { return this.value >= 65; }
-    getValue(): number  { return this.value; }
-}
-
-class ChildCount {
-    private constructor(private readonly value: number) {}
-    static fromNumber(value: number): ChildCount {
-        if (value < 0) throw new Error('Child count cannot be negative');
-        return new ChildCount(Math.floor(value));
-    }
-    getValue(): number { return this.value; }
-}
-
-class Income {
-    private constructor(private readonly value: number) {}
-    static fromNumber(value: number): Income {
-        if (value < 0) throw new Error('Income cannot be negative');
-        return new Income(value);
-    }
-    getValue(): number { return this.value; }
-}
-
-class UserName {
+  'typescript': `class ProductName {
     private constructor(private readonly value: string) {}
-    static fromString(value: string): UserName {
-        if (!value.trim()) throw new Error('Username cannot be empty');
-        return new UserName(value.trim());
+    static fromString(value: string): ProductName {
+        if (!value.trim()) throw new Error('Product name cannot be empty');
+        return new ProductName(value.trim());
     }
     getValue(): string { return this.value; }
 }
 
-function taxCalculation(
-    username: UserName, age: Age, children: ChildCount, income: Income
-): number {
-    let rate = 0.30;
-    if (age.isSenior()) rate -= 0.05;
-    rate -= children.getValue() * 0.01;
-    return income.getValue() * rate;
-}`,
-  'java': `public final class Age {
-    private final int value;
-    private Age(int value) { this.value = value; }
-
-    public static Age fromInt(int value) {
-        if (value < 0 || value > 120)
-            throw new IllegalArgumentException("Age must be between 0 and 120, got " + value);
-        return new Age(value);
+class Quantity {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): Quantity {
+        if (value < 1) throw new Error('Quantity must be at least 1, got ' + value);
+        return new Quantity(Math.floor(value));
     }
-    public boolean isSenior() { return value >= 65; }
-    public int getValue()     { return value; }
+    getValue(): number { return this.value; }
 }
 
-public final class ChildCount {
-    private final int value;
-    private ChildCount(int value) { this.value = value; }
+class Price {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): Price {
+        if (value < 0) throw new Error('Unit price cannot be negative');
+        return new Price(value);
+    }
+    getValue(): number { return this.value; }
+}
 
-    public static ChildCount fromInt(int value) {
-        if (value < 0)
-            throw new IllegalArgumentException("Child count cannot be negative");
-        return new ChildCount(value);
+class DiscountPercent {
+    private constructor(private readonly value: number) {}
+    static fromNumber(value: number): DiscountPercent {
+        if (value < 0 || value > 100)
+            throw new Error('Discount must be between 0 and 100, got ' + value);
+        return new DiscountPercent(Math.floor(value));
+    }
+    getValue(): number { return this.value; }
+}
+
+function calculateLineTotal(
+    name: ProductName, quantity: Quantity, unitPrice: Price, discount: DiscountPercent
+): number {
+    return quantity.getValue() * unitPrice.getValue()
+        * (1 - discount.getValue() / 100);
+}`,
+  'java': `public final class ProductName {
+    private final String value;
+    private ProductName(String value) { this.value = value; }
+
+    public static ProductName fromString(String value) {
+        if (value == null || value.trim().isEmpty())
+            throw new IllegalArgumentException("Product name cannot be empty");
+        return new ProductName(value.trim());
+    }
+    public String getValue() { return value; }
+}
+
+public final class Quantity {
+    private final int value;
+    private Quantity(int value) { this.value = value; }
+
+    public static Quantity fromInt(int value) {
+        if (value < 1)
+            throw new IllegalArgumentException("Quantity must be at least 1, got " + value);
+        return new Quantity(value);
     }
     public int getValue() { return value; }
 }
 
-public final class Income {
+public final class Price {
     private final double value;
-    private Income(double value) { this.value = value; }
+    private Price(double value) { this.value = value; }
 
-    public static Income fromDouble(double value) {
+    public static Price fromDouble(double value) {
         if (value < 0)
-            throw new IllegalArgumentException("Income cannot be negative");
-        return new Income(value);
+            throw new IllegalArgumentException("Unit price cannot be negative");
+        return new Price(value);
     }
     public double getValue() { return value; }
 }
 
-public double taxCalculation(
-    UserName username, Age age, ChildCount children, Income income
-) {
-    double rate = 0.30;
-    if (age.isSenior()) rate -= 0.05;
-    rate -= children.getValue() * 0.01;
-    return income.getValue() * rate;
-}`,
-  'rust': `pub struct Age(u32);
+public final class DiscountPercent {
+    private final int value;
+    private DiscountPercent(int value) { this.value = value; }
 
-impl Age {
-    pub fn from_u32(value: u32) -> Result<Self, String> {
-        if value > 120 {
-            return Err(format!("Age must be <= 120, got {}", value));
-        }
-        Ok(Age(value))
+    public static DiscountPercent fromInt(int value) {
+        if (value < 0 || value > 100)
+            throw new IllegalArgumentException("Discount must be between 0 and 100, got " + value);
+        return new DiscountPercent(value);
     }
-    pub fn is_senior(&self) -> bool { self.0 >= 65 }
+    public int getValue() { return value; }
+}
+
+public double calculateLineTotal(
+    ProductName name, Quantity quantity, Price unitPrice, DiscountPercent discount
+) {
+    return quantity.getValue() * unitPrice.getValue()
+        * (1 - discount.getValue() / 100.0);
+}`,
+  'rust': `pub struct ProductName(String);
+
+impl ProductName {
+    pub fn from_str(value: &str) -> Result<Self, String> {
+        if value.trim().is_empty() {
+            return Err("Product name cannot be empty".into());
+        }
+        Ok(ProductName(value.trim().to_string()))
+    }
+    pub fn value(&self) -> &str { &self.0 }
+}
+
+// u32 excludes negatives; only lower bound (>= 1) needs a check
+pub struct Quantity(u32);
+
+impl Quantity {
+    pub fn from_u32(value: u32) -> Result<Self, String> {
+        if value < 1 {
+            return Err(format!("Quantity must be at least 1, got {}", value));
+        }
+        Ok(Quantity(value))
+    }
     pub fn value(&self) -> u32 { self.0 }
 }
 
-// u32 is always >= 0: the type system eliminates this validation entirely
-pub struct ChildCount(u32);
+pub struct Price(f64);
 
-impl ChildCount {
-    pub fn from_u32(value: u32) -> Self { ChildCount(value) }
-    pub fn value(&self) -> u32 { self.0 }
-}
-
-pub struct Income(f64);
-
-impl Income {
+impl Price {
     pub fn from_f64(value: f64) -> Result<Self, String> {
         if value < 0.0 {
-            return Err(format!("Income cannot be negative, got {}", value));
+            return Err(format!("Unit price cannot be negative, got {}", value));
         }
-        Ok(Income(value))
+        Ok(Price(value))
     }
     pub fn value(&self) -> f64 { self.0 }
 }
 
-pub fn tax_calculation(age: &Age, children: &ChildCount, income: &Income) -> f64 {
-    let mut rate = 0.30_f64;
-    if age.is_senior() { rate -= 0.05; }
-    rate -= children.value() as f64 * 0.01;
-    income.value() * rate
+// u32 excludes negatives; only upper bound (<= 100) needs a check
+pub struct DiscountPercent(u32);
+
+impl DiscountPercent {
+    pub fn from_u32(value: u32) -> Result<Self, String> {
+        if value > 100 {
+            return Err(format!("Discount must be 0-100, got {}", value));
+        }
+        Ok(DiscountPercent(value))
+    }
+    pub fn value(&self) -> u32 { self.0 }
+}
+
+pub fn calculate_line_total(
+    _name: &ProductName, quantity: &Quantity, price: &Price, discount: &DiscountPercent
+) -> f64 {
+    quantity.value() as f64 * price.value() * (1.0 - discount.value() as f64 / 100.0)
 }`,
   'python': `from dataclasses import dataclass
 
 @dataclass(frozen=True)
-class Age:
-    value: int
-
-    def __post_init__(self):
-        if self.value < 0 or self.value > 120:
-            raise ValueError(f"Age must be between 0 and 120, got {self.value}")
-
-    def is_senior(self) -> bool:
-        return self.value >= 65
-
-@dataclass(frozen=True)
-class ChildCount:
-    value: int
-
-    def __post_init__(self):
-        if self.value < 0:
-            raise ValueError(f"Child count cannot be negative, got {self.value}")
-
-@dataclass(frozen=True)
-class Income:
-    value: float
-
-    def __post_init__(self):
-        if self.value < 0:
-            raise ValueError(f"Income cannot be negative, got {self.value}")
-
-@dataclass(frozen=True)
-class UserName:
+class ProductName:
     value: str
 
     def __post_init__(self):
         if not self.value.strip():
-            raise ValueError("Username cannot be empty")
+            raise ValueError("Product name cannot be empty")
 
-def tax_calculation(username: UserName, age: Age, children: ChildCount, income: Income) -> float:
-    rate = 0.30
-    if age.is_senior():
-        rate -= 0.05
-    rate -= children.value * 0.01
-    return income.value * rate`,
-  'scala': `case class Age private (value: Int) {
-  def isSenior: Boolean = value >= 65
-}
-object Age {
-  def fromInt(value: Int): Age = {
-    require(value >= 0 && value <= 120, s"Age must be between 0 and 120, got $value")
-    new Age(value)
-  }
-}
+@dataclass(frozen=True)
+class Quantity:
+    value: int
 
-case class ChildCount private (value: Int)
-object ChildCount {
-  def fromInt(value: Int): ChildCount = {
-    require(value >= 0, s"Child count cannot be negative, got $value")
-    new ChildCount(value)
-  }
-}
+    def __post_init__(self):
+        if self.value < 1:
+            raise ValueError(f"Quantity must be at least 1, got {self.value}")
 
-case class Income private (value: Double)
-object Income {
-  def fromDouble(value: Double): Income = {
-    require(value >= 0, s"Income cannot be negative, got $value")
-    new Income(value)
-  }
-}
+@dataclass(frozen=True)
+class Price:
+    value: float
 
-case class UserName private (value: String)
-object UserName {
-  def fromString(value: String): UserName = {
-    require(value.trim.nonEmpty, "Username cannot be empty")
-    new UserName(value.trim)
-  }
+    def __post_init__(self):
+        if self.value < 0:
+            raise ValueError(f"Unit price cannot be negative, got {self.value}")
+
+@dataclass(frozen=True)
+class DiscountPercent:
+    value: int
+
+    def __post_init__(self):
+        if self.value < 0 or self.value > 100:
+            raise ValueError(f"Discount must be between 0 and 100, got {self.value}")
+
+def calculate_line_total(
+    name: ProductName, quantity: Quantity, unit_price: Price, discount: DiscountPercent
+) -> float:
+    return quantity.value * unit_price.value * (1 - discount.value / 100)`,
+  'scala': `case class ProductName private (value: String)
+object ProductName {
+  def fromString(value: String): Either[String, ProductName] =
+    if (value.trim.nonEmpty) Right(new ProductName(value.trim))
+    else Left("Product name cannot be empty")
 }
 
-def taxCalculation(username: UserName, age: Age, children: ChildCount, income: Income): Double = {
-  val discount = (if (age.isSenior) 0.05 else 0.0) + children.value * 0.01
-  income.value * (0.30 - discount)
-}`,
-  'elixir': `defmodule Age do
+case class Quantity private (value: Int)
+object Quantity {
+  def fromInt(value: Int): Either[String, Quantity] =
+    if (value >= 1) Right(new Quantity(value))
+    else Left(s"Quantity must be at least 1, got $value")
+}
+
+case class Price private (value: Double)
+object Price {
+  def fromDouble(value: Double): Either[String, Price] =
+    if (value >= 0) Right(new Price(value))
+    else Left(s"Unit price cannot be negative, got $value")
+}
+
+case class DiscountPercent private (value: Int)
+object DiscountPercent {
+  def fromInt(value: Int): Either[String, DiscountPercent] =
+    if (value >= 0 && value <= 100) Right(new DiscountPercent(value))
+    else Left(s"Discount must be between 0 and 100, got $value")
+}
+
+// Receiving Quantity proves construction succeeded. Quantity(0) cannot exist.
+// The function body is a single expression — no branches at all.
+def calculateLineTotal(
+  name: ProductName, quantity: Quantity, unitPrice: Price, discount: DiscountPercent
+): Double =
+  quantity.value * unitPrice.value * (1 - discount.value / 100.0)`,
+  'elixir': `defmodule ProductName do
   @enforce_keys [:value]
   defstruct [:value]
 
-  def new(v) when is_integer(v) and v >= 0 and v <= 120, do: {:ok, %Age{value: v}}
-  def new(v), do: {:error, "Age must be between 0 and 120, got #{v}"}
-
-  def senior?(%Age{value: v}), do: v >= 65
+  def new(v) when is_binary(v) and byte_size(v) > 0,
+    do: {:ok, %ProductName{value: String.trim(v)}}
+  def new(_), do: {:error, "Product name cannot be empty"}
 end
 
-defmodule ChildCount do
+defmodule Quantity do
   @enforce_keys [:value]
   defstruct [:value]
 
-  def new(v) when is_integer(v) and v >= 0, do: {:ok, %ChildCount{value: v}}
-  def new(v), do: {:error, "Child count cannot be negative, got #{v}"}
+  def new(v) when is_integer(v) and v >= 1, do: {:ok, %Quantity{value: v}}
+  def new(v), do: {:error, "Quantity must be at least 1, got #{v}"}
 end
 
-defmodule Income do
+defmodule Price do
   @enforce_keys [:value]
   defstruct [:value]
 
-  def new(v) when is_number(v) and v >= 0, do: {:ok, %Income{value: v}}
-  def new(v), do: {:error, "Income cannot be negative, got #{v}"}
+  def new(v) when is_number(v) and v >= 0, do: {:ok, %Price{value: v}}
+  def new(_), do: {:error, "Unit price cannot be negative"}
 end
 
-def tax_calculation(%UserName{}, %Age{} = age, %ChildCount{} = children, %Income{} = income) do
-  rate = 0.30
-  rate = if Age.senior?(age), do: rate - 0.05, else: rate
-  rate = rate - children.value * 0.01
-  income.value * rate
+defmodule DiscountPercent do
+  @enforce_keys [:value]
+  defstruct [:value]
+
+  def new(v) when is_integer(v) and v >= 0 and v <= 100, do: {:ok, %DiscountPercent{value: v}}
+  def new(v), do: {:error, "Discount must be between 0 and 100, got #{v}"}
+end
+
+# Receiving %Quantity{} proves construction succeeded. A Quantity of 0 cannot exist.
+# The function body is a single expression with no branches.
+def calculate_line_total(
+  %ProductName{}, %Quantity{} = qty, %Price{} = price, %DiscountPercent{} = discount
+) do
+  qty.value * price.value * (1 - discount.value / 100)
 end`,
 };
 
 // ── NAIVE CONTROLLER ──
 const naiveController = {
   'php': `// Symfony
-#[Route('/calculate-tax', methods: ['GET'])]
-public function calculateTax(Request $request): JsonResponse
+#[Route('/cart/line-total', methods: ['GET'])]
+public function calculateLineTotal(Request $request): JsonResponse
 {
-    $age      = (int)   $request->query->get('age');
-    $children = (int)   $request->query->get('children');
-    $income   = (float) $request->query->get('income');
+    $productName     = $request->query->get('product_name');
+    $quantity        = (int)   $request->query->get('quantity');
+    $unitPrice       = (float) $request->query->get('unit_price');
+    $discountPercent = (int)   $request->query->get('discount_percent');
 
     // all validation happens here again...
-    $result = tax_calculation($age, $children, $income);
-    return new JsonResponse(['tax' => $result]);
+    $result = calculate_line_total($productName, $quantity, $unitPrice, $discountPercent);
+    return new JsonResponse(['total' => $result]);
 }
 
 // Laravel
-public function calculateTax(Request $request): JsonResponse
+public function calculateLineTotal(Request $request): JsonResponse
 {
-    $age      = (int)   $request->query('age');
-    $children = (int)   $request->query('children');
-    $income   = (float) $request->query('income');
+    $productName     = $request->query('product_name');
+    $quantity        = (int)   $request->query('quantity');
+    $unitPrice       = (float) $request->query('unit_price');
+    $discountPercent = (int)   $request->query('discount_percent');
 
     // all validation happens here again...
-    $result = tax_calculation($age, $children, $income);
-    return response()->json(['tax' => $result]);
+    $result = calculate_line_total($productName, $quantity, $unitPrice, $discountPercent);
+    return response()->json(['total' => $result]);
 }`,
   'typescript': `// Express (Node.js)
-app.get('/calculate-tax', (req: Request, res: Response) => {
-    const age      = parseInt(req.query.age as string);
-    const children = parseInt(req.query.children as string);
-    const income   = parseFloat(req.query.income as string);
+app.get('/cart/line-total', (req: Request, res: Response) => {
+    const productName     = req.query.product_name as string;
+    const quantity        = parseInt(req.query.quantity as string);
+    const unitPrice       = parseFloat(req.query.unit_price as string);
+    const discountPercent = parseInt(req.query.discount_percent as string);
 
     // all validation happens here again...
-    const result = taxCalculation(age, children, income);
-    res.json({ tax: result });
+    const result = calculateLineTotal(productName, quantity, unitPrice, discountPercent);
+    res.json({ total: result });
 });
 
-// Next.js (app/api/calculate-tax/route.ts)
+// Next.js (app/api/cart/line-total/route.ts)
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const age      = parseInt(searchParams.get('age')      ?? '0');
-    const children = parseInt(searchParams.get('children') ?? '0');
-    const income   = parseFloat(searchParams.get('income') ?? '0');
+    const productName     = searchParams.get('product_name')     ?? '';
+    const quantity        = parseInt(searchParams.get('quantity')        ?? '0');
+    const unitPrice       = parseFloat(searchParams.get('unit_price')    ?? '0');
+    const discountPercent = parseInt(searchParams.get('discount_percent') ?? '0');
 
     // all validation happens here again...
-    const result = taxCalculation(age, children, income);
-    return Response.json({ tax: result });
+    const result = calculateLineTotal(productName, quantity, unitPrice, discountPercent);
+    return Response.json({ total: result });
 }`,
-  'java': `@GetMapping("/calculate-tax")
-public ResponseEntity<Map<String, Double>> calculateTax(
-    @RequestParam int age,
-    @RequestParam int children,
-    @RequestParam double income
+  'java': `@GetMapping("/cart/line-total")
+public ResponseEntity<Map<String, Double>> calculateLineTotal(
+    @RequestParam String productName,
+    @RequestParam int quantity,
+    @RequestParam double unitPrice,
+    @RequestParam int discountPercent
 ) {
     // all validation happens here again...
-    double result = taxCalculation(age, children, income);
-    return ResponseEntity.ok(Map.of("tax", result));
+    double result = calculateLineTotal(productName, quantity, unitPrice, discountPercent);
+    return ResponseEntity.ok(Map.of("total", result));
 }`,
   'rust': `#[derive(Deserialize)]
-struct TaxParams { age: u32, children: u32, income: f64 }
+struct LineTotalParams {
+    product_name:     String,
+    quantity:         u32,
+    unit_price:       f64,
+    discount_percent: u32,
+}
 
-async fn calculate_tax(
-    Query(params): Query<TaxParams>,
+async fn calculate_line_total(
+    Query(params): Query<LineTotalParams>,
 ) -> impl IntoResponse {
     // all validation happens here again...
-    let result = tax_calculation(params.age, params.children, params.income);
-    Json(json!({ "tax": result }))
+    let result = line_total(&params.product_name, params.quantity, params.unit_price, params.discount_percent);
+    Json(json!({ "total": result }))
 }`,
   'python': `from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-@app.route('/calculate-tax')
-def calculate_tax_endpoint():
-    age      = int(request.args.get('age', 0))
-    children = int(request.args.get('children', 0))
-    income   = float(request.args.get('income', 0))
+@app.route('/cart/line-total')
+def line_total_endpoint():
+    product_name     = request.args.get('product_name', '')
+    quantity         = int(request.args.get('quantity', 0))
+    unit_price       = float(request.args.get('unit_price', 0))
+    discount_percent = int(request.args.get('discount_percent', 0))
 
     # all validation happens here again...
-    result = tax_calculation(age, children, income)
-    return jsonify({'tax': result})`,
+    result = calculate_line_total(product_name, quantity, unit_price, discount_percent)
+    return jsonify({'total': result})`,
   'scala': `// Play Framework
-def calculateTax = Action { request =>
-  val params   = request.queryString
-  val age      = params("age").head.toInt
-  val children = params("children").head.toInt
-  val income   = params("income").head.toDouble
+def calculateLineTotal = Action { request =>
+  val params          = request.queryString
+  val productName     = params("product_name").head
+  val quantity        = params("quantity").head.toInt
+  val unitPrice       = params("unit_price").head.toDouble
+  val discountPercent = params("discount_percent").head.toInt
 
   // all validation happens here again...
-  val result = taxCalculation(age, children, income)
-  Ok(Json.obj("tax" -> result))
+  val result = calculateLineTotal(productName, quantity, unitPrice, discountPercent)
+  Ok(Json.obj("total" -> result))
 }`,
-  'elixir': `def calculate_tax(conn, params) do
-  age      = String.to_integer(params["age"]      || "0")
-  children = String.to_integer(params["children"] || "0")
-  income   = String.to_float(params["income"]     || "0.0")
+  'elixir': `def calculate_line_total(conn, params) do
+  product_name     = params["product_name"]     || ""
+  quantity         = String.to_integer(params["quantity"]         || "0")
+  unit_price       = String.to_float(params["unit_price"]         || "0.0")
+  discount_percent = String.to_integer(params["discount_percent"] || "0")
 
   # all validation happens here again...
-  result = TaxCalculator.tax_calculation(age, children, income)
-  json(conn, %{tax: result})
+  result = Cart.calculate_line_total(product_name, quantity, unit_price, discount_percent)
+  json(conn, %{total: result})
 end`,
 };
 
 // ── TYPED CONTROLLER ──
 const typedController = {
-  'php': `// ── Symfony: MapQueryParameter + custom Normalizer ──
-
-final class AgeNormalizer implements DenormalizerInterface
+  'php': `// Symfony 6.3+: #[MapQueryParameter] paired with a custom DenormalizerInterface
+// tells the dispatcher to call your normalizer before the action runs.
+// Register each normalizer once; every action that type-hints the value object
+// gets automatic deserialization and 422 rejection at no extra cost.
+final class ProductNameNormalizer implements DenormalizerInterface
 {
-    public function denormalize(mixed $data, string $type, ...): Age
+    public function denormalize(mixed $data, string $type, ...): ProductName
     {
-        return Age::fromInt((int) $data); // throws -> HTTP 422 automatically
+        return ProductName::fromString((string) $data);
     }
     public function supportsDenormalization(mixed $data, string $type, ...): bool
     {
-        return $type === Age::class;
+        return $type === ProductName::class;
     }
 }
 
-final class ChildCountNormalizer implements DenormalizerInterface
+final class QuantityNormalizer implements DenormalizerInterface
 {
-    public function denormalize(mixed $data, string $type, ...): ChildCount
+    public function denormalize(mixed $data, string $type, ...): Quantity
     {
-        return ChildCount::fromInt((int) $data);
+        return Quantity::fromInt((int) $data);
     }
     public function supportsDenormalization(mixed $data, string $type, ...): bool
     {
-        return $type === ChildCount::class;
+        return $type === Quantity::class;
     }
 }
 
-final class IncomeNormalizer implements DenormalizerInterface
-{
-    public function denormalize(mixed $data, string $type, ...): Income
-    {
-        return Income::fromFloat((float) $data);
-    }
-    public function supportsDenormalization(mixed $data, string $type, ...): bool
-    {
-        return $type === Income::class;
-    }
-}
+// PriceNormalizer and DiscountPercentNormalizer follow the same pattern
 
-#[Route('/calculate-tax', methods: ['GET'])]
-public function calculateTax(
-    #[MapQueryParameter] Age $age,
-    #[MapQueryParameter] ChildCount $children,
-    #[MapQueryParameter] Income $income
+#[Route('/cart/line-total', methods: ['GET'])]
+public function calculateLineTotal(
+    #[MapQueryParameter] ProductName $productName,
+    #[MapQueryParameter] Quantity $quantity,
+    #[MapQueryParameter] Price $unitPrice,
+    #[MapQueryParameter] DiscountPercent $discountPercent
 ): JsonResponse {
-    $result = tax_calculation($age, $children, $income);
-    return new JsonResponse(['tax' => $result]);
+    $result = calculate_line_total($productName, $quantity, $unitPrice, $discountPercent);
+    return new JsonResponse(['total' => $result]);
 }
 
-// ── Laravel: FormRequest ──
-
-final class CalculateTaxRequest extends FormRequest
+// Laravel: FormRequest
+final class LineTotalRequest extends FormRequest
 {
     public function rules(): array
     {
         return [
-            'age'      => ['required', 'integer', 'min:0', 'max:120'],
-            'children' => ['required', 'integer', 'min:0'],
-            'income'   => ['required', 'numeric',  'min:0'],
+            'product_name'     => ['required', 'string', 'min:1'],
+            'quantity'         => ['required', 'integer', 'min:1'],
+            'unit_price'       => ['required', 'numeric',  'min:0'],
+            'discount_percent' => ['required', 'integer', 'min:0', 'max:100'],
         ];
     }
 
-    public function age(): Age         { return Age::fromInt($this->integer('age')); }
-    public function children(): ChildCount { return ChildCount::fromInt($this->integer('children')); }
-    public function income(): Income   { return Income::fromFloat($this->float('income')); }
+    public function productName(): ProductName       { return ProductName::fromString($this->string('product_name')); }
+    public function quantity(): Quantity             { return Quantity::fromInt($this->integer('quantity')); }
+    public function unitPrice(): Price               { return Price::fromFloat($this->float('unit_price')); }
+    public function discountPercent(): DiscountPercent { return DiscountPercent::fromInt($this->integer('discount_percent')); }
 }
 
-public function calculateTax(CalculateTaxRequest $request): JsonResponse
+public function calculateLineTotal(LineTotalRequest $request): JsonResponse
 {
-    $result = tax_calculation($request->age(), $request->children(), $request->income());
-    return response()->json(['tax' => $result]);
+    $result = calculate_line_total(
+        $request->productName(),
+        $request->quantity(),
+        $request->unitPrice(),
+        $request->discountPercent()
+    );
+    return response()->json(['total' => $result]);
 }`,
   'typescript': `import { z } from 'zod';
 
-// Schema transforms validated numbers directly into domain types
-const TaxSchema = z.object({
-    age:      z.coerce.number().int().min(0).max(120).transform(v => Age.fromNumber(v)),
-    children: z.coerce.number().int().min(0).transform(v => ChildCount.fromNumber(v)),
-    income:   z.coerce.number().min(0).transform(v => Income.fromNumber(v)),
+const LineTotalSchema = z.object({
+    product_name:     z.string().min(1).transform(v => ProductName.fromString(v)),
+    quantity:         z.coerce.number().int().min(1).transform(v => Quantity.fromNumber(v)),
+    unit_price:       z.coerce.number().min(0).transform(v => Price.fromNumber(v)),
+    discount_percent: z.coerce.number().int().min(0).max(100).transform(v => DiscountPercent.fromNumber(v)),
 });
 
-// Express (Node.js)
-app.get('/calculate-tax', (req: Request, res: Response) => {
-    const parsed = TaxSchema.safeParse(req.query);
+// Express
+app.get('/cart/line-total', (req: Request, res: Response) => {
+    const parsed = LineTotalSchema.safeParse(req.query);
     if (!parsed.success) return res.status(422).json(parsed.error.flatten());
-    // parsed.data.age is already Age, not number
-    res.json({ tax: taxCalculation(parsed.data.age, parsed.data.children, parsed.data.income) });
+    const { product_name, quantity, unit_price, discount_percent } = parsed.data;
+    res.json({ total: calculateLineTotal(product_name, quantity, unit_price, discount_percent) });
 });
 
-// Next.js (app/api/calculate-tax/route.ts)
+// Next.js
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const parsed = TaxSchema.safeParse(Object.fromEntries(searchParams));
+    const parsed = LineTotalSchema.safeParse(Object.fromEntries(searchParams));
     if (!parsed.success) return Response.json(parsed.error.flatten(), { status: 422 });
-    // parsed.data.age is already Age, not number
-    return Response.json({ tax: taxCalculation(parsed.data.age, parsed.data.children, parsed.data.income) });
+    const { product_name, quantity, unit_price, discount_percent } = parsed.data;
+    return Response.json({ total: calculateLineTotal(product_name, quantity, unit_price, discount_percent) });
 }`,
   'java': `// Register once: Spring auto-discovers @Component converters
 @Component
-public class StringToAgeConverter implements Converter<String, Age> {
-    public Age convert(String s) { return Age.fromInt(Integer.parseInt(s)); }
+public class StringToProductNameConverter implements Converter<String, ProductName> {
+    public ProductName convert(String s) { return ProductName.fromString(s); }
 }
 
 @Component
-public class StringToChildCountConverter implements Converter<String, ChildCount> {
-    public ChildCount convert(String s) { return ChildCount.fromInt(Integer.parseInt(s)); }
+public class StringToQuantityConverter implements Converter<String, Quantity> {
+    public Quantity convert(String s) { return Quantity.fromInt(Integer.parseInt(s)); }
 }
 
 @Component
-public class StringToIncomeConverter implements Converter<String, Income> {
-    public Income convert(String s) { return Income.fromDouble(Double.parseDouble(s)); }
+public class StringToPriceConverter implements Converter<String, Price> {
+    public Price convert(String s) { return Price.fromDouble(Double.parseDouble(s)); }
 }
 
-// Controller: no construction, no validation
-@GetMapping("/calculate-tax")
-public ResponseEntity<Map<String, Double>> calculateTax(
-    @RequestParam Age age,
-    @RequestParam ChildCount children,
-    @RequestParam Income income
+@Component
+public class StringToDiscountPercentConverter implements Converter<String, DiscountPercent> {
+    public DiscountPercent convert(String s) { return DiscountPercent.fromInt(Integer.parseInt(s)); }
+}
+
+@GetMapping("/cart/line-total")
+public ResponseEntity<Map<String, Double>> calculateLineTotal(
+    @RequestParam ProductName productName,
+    @RequestParam Quantity quantity,
+    @RequestParam Price unitPrice,
+    @RequestParam DiscountPercent discountPercent
 ) {
-    double result = taxCalculation(age, children, income);
-    return ResponseEntity.ok(Map.of("tax", result));
+    double result = calculateLineTotal(productName, quantity, unitPrice, discountPercent);
+    return ResponseEntity.ok(Map.of("total", result));
 }
 // Spring returns HTTP 400 automatically when any converter throws`,
-  'rust': `// Implement Deserialize directly on value objects
-impl<'de> Deserialize<'de> for Age {
+  'rust': `impl<'de> Deserialize<'de> for ProductName {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let v = String::deserialize(d)?;
+        if v.trim().is_empty() {
+            return Err(D::Error::custom("Product name cannot be empty"));
+        }
+        Ok(ProductName(v.trim().to_string()))
+    }
+}
+
+impl<'de> Deserialize<'de> for Quantity {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let v = u32::deserialize(d)?;
-        if v > 120 {
-            return Err(D::Error::custom(format!("Age must be <= 120, got {}", v)));
+        if v < 1 {
+            return Err(D::Error::custom(format!("Quantity must be at least 1, got {}", v)));
         }
-        Ok(Age(v))
+        Ok(Quantity(v))
     }
 }
 
-impl<'de> Deserialize<'de> for Income {
+impl<'de> Deserialize<'de> for DiscountPercent {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let v = f64::deserialize(d)?;
-        if v < 0.0 {
-            return Err(D::Error::custom(format!("Income cannot be negative, got {}", v)));
+        let v = u32::deserialize(d)?;
+        if v > 100 {
+            return Err(D::Error::custom(format!("Discount must be 0-100, got {}", v)));
         }
-        Ok(Income(v))
+        Ok(DiscountPercent(v))
     }
 }
-
-// ChildCount uses u32: non-negativity is enforced by the type itself
 
 #[derive(Deserialize)]
-struct TaxParams {
-    age:      Age,        // validated 0..=120 during deserialization
-    children: ChildCount, // u32 is always >= 0, no custom impl needed
-    income:   Income,     // validated >= 0 during deserialization
+struct LineTotalParams {
+    product_name:     ProductName,
+    quantity:         Quantity,
+    unit_price:       Price,
+    discount_percent: DiscountPercent,
 }
 
-// No Result, no map_err, no ? — Axum returns 422 automatically
-async fn calculate_tax(
-    Query(params): Query<TaxParams>,
+async fn calculate_line_total(
+    Query(params): Query<LineTotalParams>,
 ) -> Json<Value> {
-    let result = tax_calculation(&params.age, &params.children, &params.income);
-    Json(json!({ "tax": result }))
+    let result = line_total(&params.product_name, &params.quantity, &params.unit_price, &params.discount_percent);
+    Json(json!({ "total": result }))
 }`,
-  'python': `from fastapi import FastAPI, Depends, Query
+  'python': `from fastapi import FastAPI, Query
 from typing import Annotated
 from pydantic import AfterValidator
 
-# Wire validation and construction in one place
-AgeParam      = Annotated[int,   Query(ge=0, le=120), AfterValidator(lambda v: Age(v))]
-ChildrenParam = Annotated[int,   Query(ge=0),         AfterValidator(lambda v: ChildCount(v))]
-IncomeParam   = Annotated[float, Query(ge=0),         AfterValidator(lambda v: Income(v))]
+ProductNameParam    = Annotated[str,   Query(min_length=1),      AfterValidator(lambda v: ProductName(v))]
+QuantityParam       = Annotated[int,   Query(ge=1),              AfterValidator(lambda v: Quantity(v))]
+PriceParam          = Annotated[float, Query(ge=0),              AfterValidator(lambda v: Price(v))]
+DiscountPercentParam = Annotated[int,  Query(ge=0, le=100),      AfterValidator(lambda v: DiscountPercent(v))]
 
 app = FastAPI()
 
-# age, children, income are already domain types — no construction in body
-@app.get("/calculate-tax")
-def calculate_tax_endpoint(
-    age:      AgeParam,
-    children: ChildrenParam,
-    income:   IncomeParam,
-    current_user: UserName = Depends(get_current_user),
+@app.get("/cart/line-total")
+def line_total_endpoint(
+    product_name:     ProductNameParam,
+    quantity:         QuantityParam,
+    unit_price:       PriceParam,
+    discount_percent: DiscountPercentParam,
 ):
-    return {"tax": tax_calculation(current_user, age, children, income)}
+    return {"total": calculate_line_total(product_name, quantity, unit_price, discount_percent)}
 # FastAPI returns HTTP 422 automatically on validation or AfterValidator failure`,
-  'scala': `// Play Framework with custom query binders
-object AgeBinder {
-  implicit val binder: QueryStringBindable[Age] =
-    QueryStringBindable.bindableInt.transform(
-      i => Age.fromInt(i),
-      a => a.value
-    )
-}
+  'scala': `// Register once; Play discovers all implicit QueryStringBindable instances
+implicit val quantityBinder: QueryStringBindable[Quantity] =
+  new QueryStringBindable[Quantity] {
+    def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, Quantity]] =
+      QueryStringBindable.bindableInt.bind(key, params).map {
+        case Right(i) => Quantity.fromInt(i)
+        case Left(e)  => Left(e)
+      }
+    def unbind(key: String, v: Quantity): String = s"$key=\${v.value}"
+  }
 
-// Controller: no defensive code
-def calculateTax(age: Age, children: ChildCount, income: Income) = AuthenticatedAction { req =>
-  val result = taxCalculation(req.user, age, children, income)
-  Ok(Json.obj("tax" -> result))
+// Same pattern for ProductName, Price, DiscountPercent
+
+def lineTotal(
+  productName: ProductName,
+  quantity: Quantity,
+  unitPrice: Price,
+  discountPercent: DiscountPercent
+) = Action {
+  val result = CartService.calculateLineTotal(productName, quantity, unitPrice, discountPercent)
+  Ok(Json.obj("total" -> result))
 }
-// Play returns HTTP 400 automatically when binder throws`,
-  'elixir': `# Define Ecto custom types — construction and validation in one place
-defmodule AgeType do
-  use Ecto.Type
-  def type, do: :integer
-  def cast(v) when is_integer(v) and v >= 0 and v <= 120, do: {:ok, %Age{value: v}}
-  def cast(v) when is_binary(v) do
-    case Integer.parse(v) do
-      {i, ""} -> cast(i)
-      _       -> :error
+// Play calls bind() for each parameter; Left(error) yields HTTP 400 automatically`,
+  'elixir': `# FallbackController: registered once, handles {:error, _} from every controller
+defmodule MyAppWeb.FallbackController do
+  use MyAppWeb, :controller
+
+  def call(conn, {:error, reason}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> json(%{error: reason})
+  end
+end
+
+# Controller: with pipeline constructs all domain types before any business logic
+defmodule MyAppWeb.CartController do
+  use MyAppWeb, :controller
+  action_fallback MyAppWeb.FallbackController
+
+  def line_total(conn, params) do
+    with {:ok, name}     <- ProductName.new(params["product_name"]),
+         {:ok, qty}      <- Quantity.new(params["quantity"]),
+         {:ok, price}    <- Price.new(params["unit_price"]),
+         {:ok, discount} <- DiscountPercent.new(params["discount_percent"]) do
+      json(conn, %{total: Cart.calculate_line_total(name, qty, price, discount)})
     end
+    # {:error, "Quantity must be at least 1, got 0"} short-circuits to FallbackController
+    # No validation code in the controller; the rule is in the value object, enforced everywhere
   end
-  def cast(_), do: :error
-  def load(v), do: {:ok, %Age{value: v}}
-  def dump(%Age{value: v}), do: {:ok, v}
-end
-
-# Same pattern for ChildCountType and IncomeType
-
-defmodule TaxRequest do
-  use Ecto.Schema
-  import Ecto.Changeset
-
-  embedded_schema do
-    field :age,      AgeType
-    field :children, ChildCountType
-    field :income,   IncomeType
-  end
-
-  def parse(params) do
-    %TaxRequest{}
-    |> cast(params, [:age, :children, :income])
-    |> validate_required([:age, :children, :income])
-    |> apply_action(:insert)
-  end
-end
-
-# Controller: receives Age, ChildCount, Income structs directly
-def calculate_tax(conn, params) do
-  case TaxRequest.parse(params) do
-    {:ok, %TaxRequest{age: age, children: children, income: income}} ->
-      result = TaxCalculator.tax_calculation(age, children, income)
-      json(conn, %{tax: result})
-    {:error, changeset} ->
-      conn |> put_status(422) |> json(%{errors: format_errors(changeset)})
-  end
-end
-# Phoenix returns HTTP 422 automatically with ActionFallback`,
+end`,
 };
 
 // ── STATE MACHINE ──
 const stateMachine = {
-  'php': `final class AnonymousRequest
-{
-    public function __construct(private readonly string $rawUsername) {}
-
-    public function authenticate(SessionService $session): AuthenticatedRequest
-    {
-        $user = $session->findActiveUser($this->rawUsername);
-        if ($user === null) {
-            throw new UnauthorizedException('User is not authenticated');
-        }
-        return new AuthenticatedRequest($user);
-    }
-}
-
-final class AuthenticatedRequest
-{
-    public function __construct(public readonly AuthenticatedUser $user) {}
-
-    public function withTaxParameters(
-        Age $age, ChildCount $children, Income $income
-    ): ValidatedTaxRequest {
-        return new ValidatedTaxRequest($this->user, $age, $children, $income);
-    }
-}
-
-final class ValidatedTaxRequest
+  'php': `final class CartItem
 {
     public function __construct(
-        public readonly AuthenticatedUser $user,
-        public readonly Age $age,
-        public readonly ChildCount $children,
-        public readonly Income $income
+        public readonly string $id,
+        public readonly string $name,
+        public readonly float  $price
     ) {}
 }
 
-function tax_calculation(ValidatedTaxRequest $request): float
+final class EmptyCart
 {
-    $rate = 0.30;
-    if ($request->age->isSenior()) { $rate -= 0.05; }
-    $rate -= $request->children->getValue() * 0.01;
-    return $request->income->getValue() * $rate;
-}`,
-  'typescript': `class AnonymousRequest {
-    constructor(private readonly rawUsername: string) {}
-
-    authenticate(session: SessionService): AuthenticatedRequest {
-        const user = session.findActiveUser(this.rawUsername);
-        if (!user) throw new UnauthorizedError('User is not authenticated');
-        return new AuthenticatedRequest(user);
-    }
-}
-
-class AuthenticatedRequest {
-    constructor(public readonly user: AuthenticatedUser) {}
-
-    withTaxParameters(age: Age, children: ChildCount, income: Income): ValidatedTaxRequest {
-        return new ValidatedTaxRequest(this.user, age, children, income);
-    }
-}
-
-class ValidatedTaxRequest {
-    constructor(
-        public readonly user: AuthenticatedUser,
-        public readonly age: Age,
-        public readonly children: ChildCount,
-        public readonly income: Income,
-    ) {}
-}
-
-function taxCalculation(req: ValidatedTaxRequest): number {
-    let rate = 0.30;
-    if (req.age.isSenior()) rate -= 0.05;
-    rate -= req.children.getValue() * 0.01;
-    return req.income.getValue() * rate;
-}`,
-  'java': `public final class AnonymousRequest {
-    private final String rawUsername;
-    public AnonymousRequest(String rawUsername) { this.rawUsername = rawUsername; }
-
-    public AuthenticatedRequest authenticate(SessionService session) {
-        AuthenticatedUser user = session.findActiveUser(rawUsername);
-        if (user == null) throw new UnauthorizedException("User is not authenticated");
-        return new AuthenticatedRequest(user);
-    }
-}
-
-public final class AuthenticatedRequest {
-    public final AuthenticatedUser user;
-    public AuthenticatedRequest(AuthenticatedUser user) { this.user = user; }
-
-    public ValidatedTaxRequest withTaxParameters(Age age, ChildCount children, Income income) {
-        return new ValidatedTaxRequest(user, age, children, income);
-    }
-}
-
-public final class ValidatedTaxRequest {
-    public final AuthenticatedUser user;
-    public final Age age;
-    public final ChildCount children;
-    public final Income income;
-
-    public ValidatedTaxRequest(AuthenticatedUser user, Age age, ChildCount children, Income income) {
-        this.user = user; this.age = age; this.children = children; this.income = income;
-    }
-}
-
-public double taxCalculation(ValidatedTaxRequest req) {
-    double rate = 0.30;
-    if (req.age.isSenior()) rate -= 0.05;
-    rate -= req.children.getValue() * 0.01;
-    return req.income.getValue() * rate;
-}`,
-  'rust': `pub struct AnonymousRequest { pub raw_username: String }
-
-impl AnonymousRequest {
-    pub fn authenticate(self, session: &SessionService)
-        -> Result<AuthenticatedRequest, AuthError>
+    public function addItem(CartItem $item): CartWithItems
     {
-        let user = session.find_active_user(&self.raw_username)
-            .ok_or(AuthError::NotAuthenticated)?;
-        Ok(AuthenticatedRequest { user })
+        return new CartWithItems([$item]);
     }
+
+    public function calculateTotal(): float { return 0.0; }
 }
 
-pub struct AuthenticatedRequest { pub user: AuthenticatedUser }
+final class CartWithItems
+{
+    public function __construct(private readonly array $items) {}
 
-impl AuthenticatedRequest {
-    pub fn with_tax_parameters(
-        self, age: Age, children: ChildCount, income: Income
-    ) -> ValidatedTaxRequest {
-        ValidatedTaxRequest { user: self.user, age, children, income }
+    public function addItem(CartItem $item): self
+    {
+        return new self([...$this->items, $item]);
     }
+
+    public function removeItem(string $itemId): EmptyCart|CartWithItems
+    {
+        $remaining = array_values(array_filter($this->items, fn($i) => $i->id !== $itemId));
+        return count($remaining) === 0 ? new EmptyCart() : new self($remaining);
+    }
+
+    public function calculateTotal(): float
+    {
+        return array_sum(array_map(fn($i) => $i->price, $this->items));
+    }
+
+    public function checkout(): Order { return Order::create($this->items); }
 }
 
-pub struct ValidatedTaxRequest {
-    pub user:     AuthenticatedUser,
-    pub age:      Age,
-    pub children: ChildCount,
-    pub income:   Income,
+// calculateTotal on EmptyCart returns 0.0 — no check needed, the type handles it
+$empty = new EmptyCart();
+$cart  = $empty->addItem(new CartItem('a1', 'Widget', 9.99));
+$cart  = $cart->addItem(new CartItem('a2', 'Gadget', 14.99));
+echo $cart->calculateTotal();   // 24.98
+echo $empty->calculateTotal();  // 0.0`,
+  'typescript': `interface CartItem { id: string; name: string; price: number; }
+
+class EmptyCart {
+    addItem(item: CartItem): CartWithItems {
+        return new CartWithItems([item]);
+    }
+    calculateTotal(): number { return 0; }
 }
 
-pub fn tax_calculation(req: &ValidatedTaxRequest) -> f64 {
-    let mut rate = 0.30_f64;
-    if req.age.is_senior() { rate -= 0.05; }
-    rate -= req.children.value() as f64 * 0.01;
-    req.income.value() * rate
+class CartWithItems {
+    constructor(private readonly items: CartItem[]) {}
+
+    addItem(item: CartItem): CartWithItems {
+        return new CartWithItems([...this.items, item]);
+    }
+
+    removeItem(itemId: string): EmptyCart | CartWithItems {
+        const remaining = this.items.filter(i => i.id !== itemId);
+        return remaining.length === 0 ? new EmptyCart() : new CartWithItems(remaining);
+    }
+
+    calculateTotal(): number {
+        return this.items.reduce((sum, item) => sum + item.price, 0);
+    }
+
+    checkout(): Order { return Order.create(this.items); }
+}
+
+// calculateTotal on EmptyCart returns 0 — no null or empty check anywhere
+const empty = new EmptyCart();
+const cart  = empty.addItem({ id: 'a1', name: 'Widget', price: 9.99 });
+console.log(cart.calculateTotal());   // 9.99
+console.log(empty.calculateTotal());  // 0`,
+  'java': `public sealed interface Cart permits EmptyCart, CartWithItems {}
+
+public final class EmptyCart implements Cart {
+    public CartWithItems addItem(CartItem item) {
+        return new CartWithItems(List.of(item));
+    }
+    public double calculateTotal() { return 0.0; }
+}
+
+public final class CartWithItems implements Cart {
+    private final List<CartItem> items;
+    public CartWithItems(List<CartItem> items) { this.items = List.copyOf(items); }
+
+    public CartWithItems addItem(CartItem item) {
+        var next = new ArrayList<>(items);
+        next.add(item);
+        return new CartWithItems(next);
+    }
+
+    public Cart removeItem(String itemId) {
+        var remaining = items.stream().filter(i -> !i.id().equals(itemId)).toList();
+        return remaining.isEmpty() ? new EmptyCart() : new CartWithItems(remaining);
+    }
+
+    public double calculateTotal() {
+        return items.stream().mapToDouble(CartItem::price).sum();
+    }
+
+    public Order checkout() { return Order.create(items); }
+}
+
+// Sealed interface: exhaustive switch, compiler enforces both cases
+double total = switch (cart) {
+    case EmptyCart    e -> e.calculateTotal();   // 0.0
+    case CartWithItems c -> c.calculateTotal();  // sum
+};`,
+  'rust': `#[derive(Clone)]
+pub struct CartItem { pub id: String, pub name: String, pub price: f64 }
+
+pub struct EmptyCart;
+pub struct CartWithItems { pub items: Vec<CartItem> }
+
+impl EmptyCart {
+    pub fn add_item(self, item: CartItem) -> CartWithItems {
+        CartWithItems { items: vec![item] }
+    }
+    pub fn calculate_total(&self) -> f64 { 0.0 }
+}
+
+impl CartWithItems {
+    pub fn add_item(mut self, item: CartItem) -> CartWithItems {
+        self.items.push(item);
+        self
+    }
+
+    pub fn remove_item(mut self, item_id: &str) -> Cart {
+        self.items.retain(|i| i.id != item_id);
+        if self.items.is_empty() { Cart::Empty(EmptyCart) }
+        else { Cart::WithItems(self) }
+    }
+
+    pub fn calculate_total(&self) -> f64 {
+        self.items.iter().map(|i| i.price).sum()
+    }
+
+    pub fn checkout(self) -> Order { Order::create(self.items) }
+}
+
+pub enum Cart { Empty(EmptyCart), WithItems(CartWithItems) }
+
+impl Cart {
+    pub fn calculate_total(&self) -> f64 {
+        match self {
+            Cart::Empty(e)     => e.calculate_total(),   // 0.0 by definition
+            Cart::WithItems(c) => c.calculate_total(),
+        }
+    }
 }`,
   'python': `from dataclasses import dataclass
-from typing import Optional
+from typing import Union
 
 @dataclass(frozen=True)
-class AnonymousRequest:
-    raw_username: str
-
-    def authenticate(self, session) -> 'AuthenticatedRequest':
-        user = session.find_active_user(self.raw_username)
-        if user is None:
-            raise UnauthorizedError("User is not authenticated")
-        return AuthenticatedRequest(user=user)
+class CartItem:
+    id: str
+    name: str
+    price: float
 
 @dataclass(frozen=True)
-class AuthenticatedRequest:
-    user: AuthenticatedUser
+class EmptyCart:
+    def add_item(self, item: CartItem) -> 'CartWithItems':
+        return CartWithItems(items=(item,))
 
-    def with_tax_parameters(self, age: Age, children: ChildCount, income: Income) -> 'ValidatedTaxRequest':
-        return ValidatedTaxRequest(user=self.user, age=age, children=children, income=income)
+    def calculate_total(self) -> float:
+        return 0.0
 
 @dataclass(frozen=True)
-class ValidatedTaxRequest:
-    user: AuthenticatedUser
-    age: Age
-    children: ChildCount
-    income: Income
+class CartWithItems:
+    items: tuple
 
-def tax_calculation(req: ValidatedTaxRequest) -> float:
-    rate = 0.30
-    if req.age.is_senior():
-        rate -= 0.05
-    rate -= req.children.value * 0.01
-    return req.income.value * rate`,
-  'scala': `case class AnonymousRequest(rawUsername: String) {
-  def authenticate(session: SessionService): Either[AuthError, AuthenticatedRequest] =
-    session.findActiveUser(rawUsername)
-      .map(AuthenticatedRequest.apply)
-      .toRight(AuthError.NotAuthenticated)
+    def add_item(self, item: CartItem) -> 'CartWithItems':
+        return CartWithItems(items=self.items + (item,))
+
+    def remove_item(self, item_id: str) -> Union['EmptyCart', 'CartWithItems']:
+        remaining = tuple(i for i in self.items if i.id != item_id)
+        return EmptyCart() if not remaining else CartWithItems(items=remaining)
+
+    def calculate_total(self) -> float:
+        return sum(item.price for item in self.items)
+
+    def checkout(self) -> 'Order':
+        return Order.create(self.items)
+
+# calculate_total on EmptyCart returns 0.0 — no isinstance check anywhere
+empty = EmptyCart()
+cart  = empty.add_item(CartItem('a1', 'Widget', 9.99))
+print(cart.calculate_total())   # 9.99
+print(empty.calculate_total())  # 0.0`,
+  'scala': `case class CartItem(id: String, name: String, price: Double)
+
+sealed trait Cart {
+  def calculateTotal: Double
+  def addItem(item: CartItem): CartWithItems
 }
 
-case class AuthenticatedRequest(user: AuthenticatedUser) {
-  def withTaxParameters(age: Age, children: ChildCount, income: Income): ValidatedTaxRequest =
-    ValidatedTaxRequest(user = user, age = age, children = children, income = income)
+case object EmptyCart extends Cart {
+  def calculateTotal: Double = 0.0
+  def addItem(item: CartItem): CartWithItems = CartWithItems(List(item))
 }
 
-case class ValidatedTaxRequest(
-  user:     AuthenticatedUser,
-  age:      Age,
-  children: ChildCount,
-  income:   Income,
-)
+case class CartWithItems(items: List[CartItem]) extends Cart {
+  def calculateTotal: Double = items.map(_.price).sum
+  def addItem(item: CartItem): CartWithItems = copy(items = items :+ item)
 
-def taxCalculation(req: ValidatedTaxRequest): Double = {
-  val discount = (if (req.age.isSenior) 0.05 else 0.0) + req.children.value * 0.01
-  req.income.value * (0.30 - discount)
+  def removeItem(itemId: String): Cart = {
+    val remaining = items.filterNot(_.id == itemId)
+    if (remaining.isEmpty) EmptyCart else CartWithItems(remaining)
+  }
+
+  def checkout: Order = Order.create(items)
+}
+
+// Sealed trait: exhaustive match, compiler enforces both cases
+val total = cart match {
+  case EmptyCart        => 0.0
+  case c: CartWithItems => c.calculateTotal
 }`,
-  'elixir': `defmodule AnonymousRequest do
-  defstruct [:raw_username]
+  'elixir': `defmodule CartItem do
+  @enforce_keys [:id, :name, :price]
+  defstruct [:id, :name, :price]
+end
 
-  def authenticate(%__MODULE__{raw_username: username}, session) do
-    case Session.find_active_user(session, username) do
-      nil  -> {:error, :unauthorized}
-      user -> {:ok, %AuthenticatedRequest{user: user}}
+defmodule EmptyCart do
+  defstruct []
+end
+
+defmodule CartWithItems do
+  @enforce_keys [:items]
+  defstruct [:items]
+end
+
+# add_item works on both states; always produces CartWithItems
+def add_item(%EmptyCart{}, %CartItem{} = item),
+  do: {:ok, %CartWithItems{items: [item]}}
+def add_item(%CartWithItems{items: items}, %CartItem{} = item),
+  do: {:ok, %CartWithItems{items: [item | items]}}
+
+# remove_item: the EmptyCart clause is the type-level handler.
+# No caller needs to check whether the cart is empty.
+def remove_item(%EmptyCart{}, _item),
+  do: {:error, :cart_is_empty}
+def remove_item(%CartWithItems{items: items}, %CartItem{id: id}) do
+  case Enum.reject(items, &(&1.id == id)) do
+    []        -> {:ok, %EmptyCart{}}
+    remaining -> {:ok, %CartWithItems{items: remaining}}
+  end
+end
+
+# checkout: only CartWithItems is a valid argument.
+# The EmptyCart clause makes the invalid state explicit and handled.
+def checkout(%CartWithItems{} = cart), do: {:ok, Order.create(cart)}
+def checkout(%EmptyCart{}),            do: {:error, :cart_is_empty}
+
+# calculate_total: EmptyCart returns 0.0 by definition, no guard needed
+def calculate_total(%EmptyCart{}),            do: 0.0
+def calculate_total(%CartWithItems{items: items}),
+  do: Enum.reduce(items, 0.0, fn item, acc -> acc + item.price end)
+
+# Phoenix controller: with pipeline composes the state transitions
+defmodule MyAppWeb.CartController do
+  use MyAppWeb, :controller
+  action_fallback MyAppWeb.FallbackController
+
+  def remove_item(conn, %{"item_id" => item_id}) do
+    with {:ok, cart}    <- Cart.load(conn.assigns.cart_id),
+         {:ok, item}    <- CartItem.find(item_id),
+         {:ok, updated} <- Cart.remove_item(cart, item) do
+      json(conn, %{cart: serialize(updated)})
+    end
+    # remove_item(%EmptyCart{}, item) returns {:error, :cart_is_empty}
+    # FallbackController handles it; the controller has no empty cart check
+  end
+
+  def checkout(conn, _params) do
+    with {:ok, cart}  <- Cart.load(conn.assigns.cart_id),
+         {:ok, order} <- Cart.checkout(cart) do
+      json(conn, %{order: serialize(order)})
     end
   end
 end
 
-defmodule AuthenticatedRequest do
-  defstruct [:user]
+defmodule MyAppWeb.FallbackController do
+  use MyAppWeb, :controller
 
-  def with_tax_parameters(%__MODULE__{user: user}, %Age{} = age, %ChildCount{} = children, %Income{} = income) do
-    %ValidatedTaxRequest{user: user, age: age, children: children, income: income}
+  def call(conn, {:error, :cart_is_empty}) do
+    conn |> put_status(:unprocessable_entity) |> json(%{error: "Cart is empty"})
   end
-end
-
-defmodule ValidatedTaxRequest do
-  defstruct [:user, :age, :children, :income]
-end
-
-def tax_calculation(%ValidatedTaxRequest{age: age, children: children, income: income}) do
-  rate = 0.30
-  rate = if Age.senior?(age), do: rate - 0.05, else: rate
-  rate = rate - children.value * 0.01
-  income.value * rate
 end`,
 };
 
 // ── YAML CONTENT ──
-const yamlBefore = `/calculate-tax:
+const yamlBefore = `/cart/line-total:
   get:
     parameters:
-      - name: age
+      - name: product_name
+        in: query
+        schema:
+          type: string
+      - name: quantity
         in: query
         schema:
           type: integer
-      - name: children
+      - name: unit_price
         in: query
         schema:
-          type: integer
-      - name: income
+          type: number
+      - name: discount_percent
         in: query
         schema:
-          type: number`;
+          type: integer`;
 
 const yamlAfter = `components:
   schemas:
-    Age:
-      type: integer
-      minimum: 0
-      maximum: 120
-      description: "Age of the taxpayer in years. Seniors (65+) qualify for a reduced rate."
+    ProductName:
+      type: string
+      minLength: 1
+      maxLength: 200
+      description: "Name of the product. Cannot be empty."
 
-    ChildCount:
+    Quantity:
       type: integer
-      minimum: 0
-      description: "Number of dependent children. Each child reduces the tax rate by 1%."
+      minimum: 1
+      description: "Number of units. Must be at least 1."
 
-    Income:
+    Price:
       type: number
       format: float
       minimum: 0
-      description: "Annual gross income in the local currency."
+      description: "Unit price in the local currency. Cannot be negative."
 
-    TaxResult:
+    DiscountPercent:
+      type: integer
+      minimum: 0
+      maximum: 100
+      description: "Percentage discount applied to the line item."
+
+    LineItemResult:
       type: object
-      required: [tax, rate]
+      required: [total]
       properties:
-        tax:
-          type: number
-          format: float
-        rate:
+        total:
           type: number
           format: float
 
-/calculate-tax:
+/cart/line-total:
   get:
     parameters:
-      - name: age
+      - name: product_name
         in: query
         required: true
         schema:
-          $ref: '#/components/schemas/Age'
-      - name: children
+          $ref: '#/components/schemas/ProductName'
+      - name: quantity
         in: query
         required: true
         schema:
-          $ref: '#/components/schemas/ChildCount'
-      - name: income
+          $ref: '#/components/schemas/Quantity'
+      - name: unit_price
         in: query
         required: true
         schema:
-          $ref: '#/components/schemas/Income'
+          $ref: '#/components/schemas/Price'
+      - name: discount_percent
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/DiscountPercent'
     responses:
       '200':
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TaxResult'
+              $ref: '#/components/schemas/LineItemResult'
       '422':
         description: "One or more parameters failed domain validation."`;
 
 const yamlFinal = `openapi: 3.1.0
 info:
-  title: Tax Calculation API
+  title: Cart API
   version: 1.0.0
 
 components:
@@ -2201,35 +2282,37 @@ components:
       bearerFormat: JWT
 
   schemas:
-    Age:
-      type: integer
-      minimum: 0
-      maximum: 120
-      description: "Age of the taxpayer in years. Taxpayers aged 65 or above qualify for a reduced rate."
+    ProductName:
+      type: string
+      minLength: 1
+      maxLength: 200
+      description: "Name of the product. Cannot be empty."
 
-    ChildCount:
+    Quantity:
       type: integer
-      minimum: 0
-      description: "Number of dependent children. Each child reduces the applicable tax rate by 1%."
+      minimum: 1
+      description: "Number of units in the line item. Must be at least 1."
 
-    Income:
+    Price:
       type: number
       format: float
       minimum: 0
-      description: "Annual gross income in the local currency."
+      description: "Unit price in the local currency. Cannot be negative."
 
-    TaxResult:
+    DiscountPercent:
+      type: integer
+      minimum: 0
+      maximum: 100
+      description: "Percentage discount applied to the line item. 0 means no discount."
+
+    LineItemResult:
       type: object
-      required: [tax, rate]
+      required: [total]
       properties:
-        tax:
+        total:
           type: number
           format: float
-          description: "Calculated tax amount."
-        rate:
-          type: number
-          format: float
-          description: "Effective tax rate applied."
+          description: "Calculated line item total after discount."
 
     ValidationError:
       type: object
@@ -2241,34 +2324,39 @@ components:
           type: string
 
 paths:
-  /calculate-tax:
+  /cart/line-total:
     get:
-      summary: Calculate tax for the authenticated user
+      summary: Calculate line item total for the authenticated user
       security:
         - bearerAuth: []
       parameters:
-        - name: age
+        - name: product_name
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/Age'
-        - name: children
+            $ref: '#/components/schemas/ProductName'
+        - name: quantity
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/ChildCount'
-        - name: income
+            $ref: '#/components/schemas/Quantity'
+        - name: unit_price
           in: query
           required: true
           schema:
-            $ref: '#/components/schemas/Income'
+            $ref: '#/components/schemas/Price'
+        - name: discount_percent
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DiscountPercent'
       responses:
         '200':
-          description: Tax calculated successfully.
+          description: Line item total calculated successfully.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TaxResult'
+                $ref: '#/components/schemas/LineItemResult'
         '401':
           description: Missing or invalid authentication token.
         '422':
