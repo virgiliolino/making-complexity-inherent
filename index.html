@@ -434,7 +434,12 @@
 
   <h3>3. The Three Causes of Complexity (Out of the Tar Pit)</h3>
 
-  <p>Ben Moseley and Peter Marks (2006) identify three causes of complexity in software systems.</p>
+  <blockquote>
+    "The first is the essential complexity — complexity inherent in, and the essence of, the user's problem. The second is the accidental complexity — this is all the rest — complexity with which the development team would not have to deal in the ideal world."
+    <cite>Moseley &amp; Marks, <em>Out of the Tar Pit</em>, 2006</cite>
+  </blockquote>
+
+  <p>Essential complexity cannot be removed; it is what the problem actually requires. Accidental complexity is everything else: the guards, flags, and repetition that the implementation introduces but the problem does not demand. Moseley and Marks identify three primary sources of accidental complexity in most software systems.</p>
 
   <h3 id="theory-state">3.1 Complexity Caused by State</h3>
 
@@ -617,36 +622,32 @@ classDiagram
     <pre class="mermaid">
 stateDiagram-v2
     direction TB
-    [*] --> IncomingRequest : HTTP GET /cart/line-total
-    IncomingRequest --> HTTP401 : firewall, user not authenticated
-    state "Authenticated Request" as AuthenticatedRequest {
-        a1 : session user
+    [*] --> EmptyCart
+
+    state EmptyCart {
+        e1 : calculate_total() returns 0.0
+        e2 : remove_item() returns error cart_is_empty
+        e3 : checkout() returns error cart_is_empty
     }
-    IncomingRequest --> AuthenticatedRequest : firewall passes
-    state "Value Object Construction" as Construction {
-        c1 : ProductName.fromString()
-        c2 : Quantity.fromInt()
-        c3 : Price.fromFloat()
-        c4 : DiscountPercent.fromInt()
+
+    EmptyCart --> CartWithItems : add_item(item)
+
+    state CartWithItems {
+        c1 : calculate_total() returns sum of item prices
+        c2 : remove_item(item) stays CartWithItems or returns EmptyCart
     }
-    AuthenticatedRequest --> Construction : framework dispatcher
-    Construction --> HTTP422 : any constructor throws, invalid domain value
-    state "Validated Line Item Request" as ValidatedRequest {
-        v1 : ProductName name
-        v2 : Quantity quantity
-        v3 : Price unitPrice
-        v4 : DiscountPercent discount
+
+    CartWithItems --> CartWithItems : add_item(item)
+    CartWithItems --> EmptyCart : remove_item, last item removed
+    CartWithItems --> Order : checkout()
+
+    state Order {
+        o1 : immutable, no further transitions
     }
-    Construction --> ValidatedRequest : all types constructed
-    state "Line Item Result" as LineItemResult {
-        r1 : float total
-    }
-    ValidatedRequest --> LineItemResult : calculate_line_total(), no guards needed
-    LineItemResult --> [*] : HTTP 200
-    HTTP401 --> [*]
-    HTTP422 --> [*]
+
+    Order --> [*]
     </pre>
-    <p class="diagram-caption">Each arrow is a transition that either succeeds (producing a richer type) or fails (producing an HTTP error). By the time calculate_line_total() is reached, every guarantee has already been enforced structurally.</p>
+    <p class="diagram-caption">Each state is a distinct type. Operations that are invalid for a given state return an error by type dispatch, not by runtime guards. The caller never needs to check whether the cart is empty: the type makes the outcome structurally explicit.</p>
   </div>
 
   <h3>Before: Naive Controller</h3>
